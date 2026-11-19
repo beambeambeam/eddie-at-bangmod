@@ -2,11 +2,11 @@ export { createRun } from "./run";
 
 export type {
   MoveInput,
+  Phase,
   Run,
   RunEvent,
   RunOptions,
   RunSnapshot,
-  Vec2,
 } from "./run";
 
 export {
@@ -14,9 +14,12 @@ export {
   EDDIE_SPEED,
   ITEM_POINTS,
   MAX_COMBO,
+  PHASE_TICKS,
   RUN_TICKS,
   SHOPPING_LIST_POINTS,
   SHOPPING_LIST_SIZE,
+  SOI_DOG_CHASE_TICKS,
+  STUN_TICKS,
   TICKS_PER_SECOND,
 } from "./rules";
 
@@ -24,7 +27,9 @@ export { maxScore } from "./score-cap";
 
 export { ITEMS, MARKET } from "./market";
 
-export type { Item, Rect, Stall } from "./market";
+export type { Item, Rect, Stall, Vec2 } from "./market";
+
+export type { Hazard, HazardKind } from "./hazards";
 
 export { DISHES } from "./shopping-list";
 

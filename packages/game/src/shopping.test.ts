@@ -58,6 +58,12 @@ const visit = (run: Run, item: Item | undefined) => {
   ];
 };
 
+/**
+ * A seed whose first Shopping Lists sit close together, so back-to-back visits
+ * stay inside the 4 s Combo window even when a Crowd slows Eddie.
+ */
+const QUICK_SEED = 3;
+
 const listItems = (run: Run) =>
   run.snapshot().shoppingList.items.map(({ item }) => item);
 
@@ -161,7 +167,7 @@ describe("Completing a Shopping List", () => {
   });
 
   test("a quick clear scores 100 + 200 + 300 for the Items and 300 for the list", () => {
-    const run = createRun({ seed: 1 });
+    const run = createRun({ seed: QUICK_SEED });
 
     for (const item of listItems(run)) {
       visit(run, item);
@@ -200,7 +206,7 @@ describe("Completing a Shopping List", () => {
 
 describe("Combo", () => {
   test("quick pickups grow the Combo from ×1 to ×2 to ×3", () => {
-    const run = createRun({ seed: 1 });
+    const run = createRun({ seed: QUICK_SEED });
 
     const combos = listItems(run).map((item) => {
       visit(run, item);
@@ -213,7 +219,7 @@ describe("Combo", () => {
   });
 
   test("the Combo stops at ×3", () => {
-    const run = createRun({ seed: 1 });
+    const run = createRun({ seed: QUICK_SEED });
 
     for (const item of listItems(run)) {
       visit(run, item);
@@ -229,7 +235,7 @@ describe("Combo", () => {
   });
 
   test("the Combo drops to ×1 once 4 s (240 ticks) pass with no pickup", () => {
-    const run = createRun({ seed: 1 });
+    const run = createRun({ seed: QUICK_SEED });
     const [first, second, third] = listItems(run);
     visit(run, first);
     visit(run, second);
@@ -258,7 +264,8 @@ describe("The Run's end", () => {
     const early = stepStill(run, 5399);
     expect(run.snapshot().finished).toBe(false);
     expect(run.snapshot().ticksLeft).toBe(1);
-    expect(early).toEqual([]);
+    // Phase changes and Hazard hits happen on the way, but the Run goes on.
+    expect(early).not.toContainEqual({ type: "run-ended" });
 
     expect(run.step(STILL)).toEqual([{ type: "run-ended" }]);
     expect(run.snapshot().finished).toBe(true);

@@ -1,3 +1,9 @@
+/** A point or direction on the Market floor. `x` points right, `y` down the screen. */
+export interface Vec2 {
+  x: number;
+  y: number;
+}
+
 /** An axis-aligned rectangle on the Market floor, in Market units. */
 export interface Rect {
   readonly minX: number;
@@ -53,6 +59,26 @@ const stallAt = (item: Item, index: number): Stall => {
   };
 };
 
+/** The x of the side aisles and the middle aisle, which run up the screen. */
+const AISLE_XS = [-3.85, 0, 3.85];
+
+/** The y of the cross aisles, from the back of the Market to the front. */
+const AISLE_YS = [-5.4, -2.4, 0.4, 3.2, 5.2];
+
+/**
+ * The aisle crossings. Two crossings next to each other in the grid are
+ * joined by a clear aisle, so Hazards walk between them without a Stall in the
+ * way.
+ */
+export const AISLE_GRID = { xs: AISLE_XS, ys: AISLE_YS } as const;
+
+/** A fixed lane where Motorbikes cross the whole Market. */
+export interface MotorbikeLane {
+  readonly y: number;
+  /** +1 rides to the right, -1 to the left. */
+  readonly heading: 1 | -1;
+}
+
 /**
  * The single fixed Market: two columns of four Stalls with aisles between
  * them. `x` points right, `y` points down the screen. Every Run uses it.
@@ -60,4 +86,9 @@ const stallAt = (item: Item, index: number): Stall => {
 export const MARKET = {
   bounds: { minX: -4.5, minY: -6, maxX: 4.5, maxY: 6 } satisfies Rect,
   stalls: ITEMS.map(stallAt),
+  /** Two cross aisles double as Motorbike lanes, one each way. */
+  motorbikeLanes: [
+    { y: AISLE_YS[1] ?? 0, heading: 1 },
+    { y: AISLE_YS[3] ?? 0, heading: -1 },
+  ] satisfies readonly MotorbikeLane[],
 } as const;

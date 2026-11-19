@@ -1,5 +1,5 @@
 import { EDDIE_SPEED, MARKET } from "@eddie-at-bangmod/game";
-import type { Vec2 } from "@eddie-at-bangmod/game";
+import type { Hazard, Vec2 } from "@eddie-at-bangmod/game";
 import {
   Environment,
   Lightformer,
@@ -24,6 +24,12 @@ import type { RunLoop } from "@/lib/run-loop";
 import { createMarketCamera } from "./market-camera";
 import { EddieModel } from "./models/eddie-model";
 import type { Gait } from "./models/eddie-model";
+import {
+  CrowdModel,
+  MotorbikeLaneModel,
+  MotorbikeModel,
+  SoiDogModel,
+} from "./models/hazard-models";
 import { MarketGround } from "./models/market-ground";
 import { StallModel } from "./models/stall-model";
 import { STALL_LOOKS } from "./stall-looks";
@@ -102,6 +108,63 @@ const Eddie = ({ loop }: { loop: RunLoop }) => {
     </group>
   );
 };
+
+const HazardFigure = ({ hazard }: { hazard: Hazard }) => {
+  switch (hazard.kind) {
+    case "crowd": {
+      return <CrowdModel radius={hazard.radius} />;
+    }
+
+    case "motorbike": {
+      return <MotorbikeModel />;
+    }
+
+    case "soi-dog": {
+      return <SoiDogModel chasing={hazard.chasing} />;
+    }
+
+    default: {
+      return null;
+    }
+  }
+};
+
+/** Draws every Hazard at the latest snapshot, turned toward its facing. */
+const Hazards = ({ loop }: { loop: RunLoop }) => {
+  const { run } = useSyncExternalStore(
+    loop.subscribe,
+    loop.getSnapshot,
+    loop.getSnapshot
+  );
+
+  return (
+    <>
+      {run.hazards.map((hazard) => (
+        <group
+          key={hazard.id}
+          position={[hazard.position.x, 0, hazard.position.y]}
+          rotation-y={Math.atan2(hazard.facing.x, hazard.facing.y)}
+        >
+          <HazardFigure hazard={hazard} />
+        </group>
+      ))}
+    </>
+  );
+};
+
+/** Marks each Motorbike lane from edge to edge of the Market. */
+const MotorbikeLanes = () => (
+  <>
+    {MARKET.motorbikeLanes.map(({ y }) => (
+      <MotorbikeLaneModel
+        key={y}
+        y={y}
+        from={MARKET.bounds.minX - 1}
+        to={MARKET.bounds.maxX + 1}
+      />
+    ))}
+  </>
+);
 
 const Stalls = () => {
   const tones = useMemo(
@@ -195,7 +258,9 @@ export const MarketScene = ({ loop }: { loop: RunLoop }) => {
       <PerformanceMonitor onDecline={handleDecline} />
       <Lighting />
       <MarketGround wet={rich} />
+      <MotorbikeLanes />
       <Stalls />
+      <Hazards loop={loop} />
       <Eddie loop={loop} />
       <EffectComposer multisampling={0}>
         <N8AO

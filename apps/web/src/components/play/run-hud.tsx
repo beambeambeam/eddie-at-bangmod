@@ -1,5 +1,5 @@
-import { TICKS_PER_SECOND } from "@eddie-at-bangmod/game";
-import type { RunSnapshot, ShoppingList } from "@eddie-at-bangmod/game";
+import { PHASE_TICKS, TICKS_PER_SECOND } from "@eddie-at-bangmod/game";
+import type { Phase, RunSnapshot, ShoppingList } from "@eddie-at-bangmod/game";
 import { Sheet, Tag, WordSticker } from "@plop-ui/react";
 
 import type { RunView } from "@/lib/run-loop";
@@ -57,6 +57,14 @@ const Scoreboard = ({ run }: { run: RunSnapshot }) => (
         </dd>
       </div>
       <div>
+        <dt className="sr-only">Phase</dt>
+        <dd className="m-0">
+          <Tag tone="mint" pattern="stripes" tilt={-1}>
+            {`Phase ${run.phase}`}
+          </Tag>
+        </dd>
+      </div>
+      <div>
         <dt className="sr-only">Score</dt>
         <dd className="m-0">
           <Tag tone="mustard" pattern="dots" tilt={1}>
@@ -85,12 +93,29 @@ const Call = ({ children }: { children: string }) => (
 /** "Go!" stays up for the first half second of the Run. */
 const GO_TICKS = TICKS_PER_SECOND / 2;
 
+/** What each new Phase brings into the Market. */
+const PHASE_CALLS: Record<Exclude<Phase, 1>, string> = {
+  2: "Motorbikes!",
+  3: "Soi Dog!",
+};
+
+/** A Phase call stays up for the first 1.5 s of its Phase. */
+const PHASE_CALL_TICKS = 1.5 * TICKS_PER_SECOND;
+
+const phaseCall = ({ phase, tick }: RunSnapshot) =>
+  phase !== 1 && tick - (phase - 1) * PHASE_TICKS < PHASE_CALL_TICKS
+    ? PHASE_CALLS[phase]
+    : null;
+
 /**
  * Everything a player reads during a Run, as Plop UI over the canvas
- * (ADR-0003): time left, Score, Combo and the Shopping List.
+ * (ADR-0003): time left, Phase, Score, Combo, Phase calls, the Stun and the
+ * Shopping List.
  */
 export const RunHud = ({ view }: { view: RunView }) => {
   const { stage, countdown, run } = view;
+  const call = stage === "running" ? phaseCall(run) : null;
+  const stunned = stage === "running" && run.eddie.stunTicksLeft > 0;
 
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-2">
@@ -98,6 +123,14 @@ export const RunHud = ({ view }: { view: RunView }) => {
       <output aria-live="assertive">
         {stage === "countdown" && <Call>{String(countdown)}</Call>}
         {stage === "running" && run.tick < GO_TICKS && <Call>Go!</Call>}
+        {call !== null && <Call>{call}</Call>}
+        {stunned && (
+          <div className="absolute inset-x-0 top-1/3 flex justify-center">
+            <WordSticker tone="tomato" size={40} tilt={3}>
+              Stunned!
+            </WordSticker>
+          </div>
+        )}
       </output>
       {stage !== "finished" && <ShoppingListCard list={run.shoppingList} />}
     </div>
