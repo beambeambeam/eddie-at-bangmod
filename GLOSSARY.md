@@ -10,7 +10,9 @@ A short arcade minigame. Eddie, a KMUTT Bangmod student, rushes through a street
 
 **Market**: The single small play area Eddie moves through during a Run. _Avoid_: Map, level, world
 
-**Stall**: A vendor spot in the Market that offers one kind of Item. _Avoid_: Shop, booth, vendor
+**Stall**: A spot in the Market, run by a Vendor, that offers one kind of Item. _Avoid_: Shop, booth
+
+**Vendor**: The person behind a Stall, drawn as a sprite for the look only. A Vendor never moves, blocks or reacts to Eddie. _Avoid_: Seller, shopkeeper, merchant
 
 **Item**: A thing Eddie can pick up from a Stall, such as an ingredient. _Avoid_: Pickup, product, collectible
 

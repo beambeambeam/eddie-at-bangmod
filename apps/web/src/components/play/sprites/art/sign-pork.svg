@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="192" viewBox="0 0 256 192">
+  <defs>
+    <filter id="sticker" x="-10%" y="-10%" width="120%" height="120%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="7" result="grow"/>
+      <feFlood flood-color="#FFFDF7"/>
+      <feComposite in2="grow" operator="in" result="halo"/>
+      <feMerge><feMergeNode in="halo"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#sticker)" stroke="#2848D8" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" fill="none">
+<path d="M70 40 L96 14 M186 40 L160 14" fill="none"/>
+<rect x="24" y="38" width="208" height="132" rx="26" fill="#F6A9B8"/>
+<rect x="40" y="54" width="176" height="100" rx="18" fill="#FFFDF7"/>
+<g transform="translate(78 62) scale(0.52)" stroke-width="15"><rect x="22" y="54" width="148" height="92" rx="28" fill="#F6A9B8"/>
+<path d="M44 100 C70 76 96 124 124 96 C140 84 152 96 154 104" fill="none"/>
+<path d="M50 128 C72 118 90 134 112 124" fill="none"/></g>
+  </g>
+</svg>

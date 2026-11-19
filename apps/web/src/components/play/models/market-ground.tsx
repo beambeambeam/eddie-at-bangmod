@@ -1,11 +1,7 @@
 import { MARKET } from "@eddie-at-bangmod/game";
-import { MeshReflectorMaterial } from "@react-three/drei";
 
-const ASPHALT = "#2b2d33";
-const SIDEWALK = "#9a9286";
-const CURB = "#b7b2a8";
-const LANE = "#e9e4d6";
-const SHUTTER = "#6f747b";
+import type { PlopPalette } from "../plop-colors";
+import { Toon } from "../toon";
 
 const { bounds } = MARKET;
 const SIDEWALK_WIDTH = 1.6;
@@ -14,11 +10,11 @@ const CURB_WIDTH = 0.16;
 
 /** Shophouse fronts along the back sidewalk, left to right. */
 const SHOPHOUSES = [
-  { width: 3.2, color: "#d9c7a7", lit: true },
-  { width: 2.8, color: "#b9c4c0", lit: false },
-  { width: 3.4, color: "#d8b8a0", lit: true },
-  { width: 3, color: "#c9c2b0", lit: false },
-];
+  { width: 3.2, tone: "mint" },
+  { width: 2.8, tone: "bubblegum" },
+  { width: 3.4, tone: "mustard" },
+  { width: 3, tone: "periwinkle" },
+] as const;
 
 const ROW_WIDTH = SHOPHOUSES.reduce((sum, { width }) => sum + width, 0);
 
@@ -40,18 +36,18 @@ const Slab = ({
   size: [number, number, number];
   color: string;
 }) => (
-  <mesh position={position} castShadow receiveShadow>
+  <mesh position={position}>
     <boxGeometry args={size} />
-    <meshStandardMaterial color={color} roughness={0.85} />
+    <Toon color={color} />
   </mesh>
 );
 
 /**
- * Model slot `market-ground`: wet asphalt under the Market, sidewalks and
- * curbs at its edges, shophouses behind and a road in front. `wet` turns on
- * the blurred reflections, which cost a second render of the scene.
+ * Slot-based ground: a paper-toned floor under the Market, sidewalks and curbs
+ * at its edges, shophouses behind and a road in front. Low-poly boxes with
+ * toon materials in Plop colors.
  */
-export const MarketGround = ({ wet }: { wet: boolean }) => {
+export const MarketGround = ({ palette }: { palette: PlopPalette }) => {
   const width = bounds.maxX - bounds.minX;
   const sideX = bounds.maxX + CURB_WIDTH + SIDEWALK_WIDTH / 2;
   const backZ = bounds.minY - CURB_WIDTH - SIDEWALK_WIDTH / 2;
@@ -59,29 +55,9 @@ export const MarketGround = ({ wet }: { wet: boolean }) => {
 
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[40, 40]} />
-        {wet ? (
-          <MeshReflectorMaterial
-            color={ASPHALT}
-            roughness={0.85}
-            metalness={0.35}
-            blur={[320, 120]}
-            resolution={512}
-            mixBlur={1}
-            mixStrength={3}
-            mirror={0}
-            depthScale={1}
-            minDepthThreshold={0.3}
-            maxDepthThreshold={1.6}
-          />
-        ) : (
-          <meshStandardMaterial
-            color={ASPHALT}
-            roughness={0.7}
-            metalness={0.2}
-          />
-        )}
+        <Toon color={palette.track} />
       </mesh>
       {[-1, 1].map((side) => (
         <group key={side}>
@@ -92,19 +68,19 @@ export const MarketGround = ({ wet }: { wet: boolean }) => {
               0,
             ]}
             size={[CURB_WIDTH, SIDEWALK_HEIGHT + 0.02, 30]}
-            color={CURB}
+            color={palette.periwinkle}
           />
           <Slab
             position={[side * sideX, SIDEWALK_HEIGHT / 2, 0]}
             size={[SIDEWALK_WIDTH, SIDEWALK_HEIGHT, 30]}
-            color={SIDEWALK}
+            color={palette.sheet}
           />
         </group>
       ))}
       <Slab
         position={[0, SIDEWALK_HEIGHT / 2 + 0.01, bounds.minY - CURB_WIDTH / 2]}
         size={[width + CURB_WIDTH * 2, SIDEWALK_HEIGHT + 0.02, CURB_WIDTH]}
-        color={CURB}
+        color={palette.periwinkle}
       />
       <Slab
         position={[0, SIDEWALK_HEIGHT / 2, backZ]}
@@ -113,46 +89,38 @@ export const MarketGround = ({ wet }: { wet: boolean }) => {
           SIDEWALK_HEIGHT,
           SIDEWALK_WIDTH,
         ]}
-        color={SIDEWALK}
+        color={palette.sheet}
       />
       <Slab
         position={[0, 0.03, bounds.maxY + CURB_WIDTH / 2]}
         size={[width, 0.06, CURB_WIDTH]}
-        color={CURB}
+        color={palette.periwinkle}
       />
       {Array.from({ length: 6 }, (_, index) => (
-        <mesh
+        <Slab
           key={index}
-          rotation={[-Math.PI / 2, 0, 0]}
           position={[(index - 2.5) * 1.8, 0.005, bounds.maxY + 1.1]}
-        >
-          <planeGeometry args={[0.9, 0.1]} />
-          <meshStandardMaterial color={LANE} roughness={0.6} />
-        </mesh>
+          size={[0.9, 0.01, 0.1]}
+          color={palette.paper}
+        />
       ))}
-      {SHOPHOUSE_ROW.map(({ width: w, color, lit, x }) => (
+      {SHOPHOUSE_ROW.map(({ width: w, tone, x }) => (
         <group key={x} position={[x, 0, wallZ - 0.3]}>
           <Slab
             position={[0, 2.5, 0]}
             size={[w - 0.05, 5, 0.6]}
-            color={color}
+            color={palette[tone]}
           />
-          <mesh position={[0, 1.2, 0.31]}>
-            <boxGeometry args={[w - 0.5, 2.2, 0.04]} />
-            {lit ? (
-              <meshStandardMaterial
-                color="#ffd49a"
-                emissive="#ffb35c"
-                emissiveIntensity={1.6}
-              />
-            ) : (
-              <meshStandardMaterial
-                color={SHUTTER}
-                metalness={0.6}
-                roughness={0.45}
-              />
-            )}
-          </mesh>
+          <Slab
+            position={[0, 1.2, 0.31]}
+            size={[w - 0.5, 2.2, 0.04]}
+            color={palette["ink-soft"]}
+          />
+          <Slab
+            position={[0, 3.4, 0.31]}
+            size={[w - 1.2, 0.9, 0.04]}
+            color={palette.paper}
+          />
         </group>
       ))}
     </group>
