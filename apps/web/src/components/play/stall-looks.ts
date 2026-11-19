@@ -1,22 +1,16 @@
 import type { Item } from "@eddie-at-bangmod/game";
 import type { TagTone } from "@plop-ui/react";
 
-/** Where the Stall sign stands on the counter: left of the goods. */
-export const SIGN_X = -0.78;
+/** How high the awning sits. Stall signs are pinned at this height too. */
+export const AWNING_HEIGHT = 1.45;
 
-/** Depth of the sign on the counter, from the Stall's center toward the camera. */
-export const SIGN_Z = 0.2;
-
-/** How tall the sign looks on screen, in Market units. */
-export const SIGN_HEIGHT = 0.95;
-
-/** The counter's top, in world height. Goods and the sign stand on it. */
-export const COUNTER_HEIGHT = 0.72;
+/** The awning sits over the back of the counter, so the aisle in front stays clear. */
+export const AWNING_OFFSET = -0.2;
 
 interface StallLook {
   /** The Stall sign text, shown by the Plop overlay. */
   label: string;
-  /** Plop spot color for the counter and the label. */
+  /** Plop spot color for the sign and the awning. */
   tone: Exclude<TagTone, "ink">;
 }
 
