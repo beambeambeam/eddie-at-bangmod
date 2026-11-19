@@ -56,7 +56,7 @@ const prefersReducedMotion = () =>
  * and glides without a walk cycle.
  */
 const Eddie = ({ loop }: { loop: RunLoop }) => {
-  const snapshot = useSyncExternalStore(
+  const { run } = useSyncExternalStore(
     loop.subscribe,
     loop.getSnapshot,
     loop.getSnapshot
@@ -74,7 +74,7 @@ const Eddie = ({ loop }: { loop: RunLoop }) => {
       return;
     }
 
-    const { position, facing } = snapshot.eddie;
+    const { position, facing } = run.eddie;
     const from = last.current ?? position;
     const moved = Math.hypot(position.x - from.x, position.y - from.y);
     last.current = position;
