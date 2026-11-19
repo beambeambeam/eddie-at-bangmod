@@ -20,3 +20,13 @@ Lint and format config lives in `vite.config.ts` (Vite+ with oxlint, oxfmt, Ultr
 - Dark mode runs through `data-plop-theme` on `<html>` (see `src/lib/theme.ts`). Plop tokens flip with it, so write no `dark:` variants for Plop-styled UI.
 - Pass the text label for every status. Color alone never carries meaning.
 - Keep Plop's dashed focus ring. Animate only in response to a user action, and respect reduced motion. Apply wobble and crayon filters to lines and lettering, never to body text.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `beambeambeam/eddie-at-bangmod`; specs and tickets get `ready-for-agent`. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: root `GLOSSARY.md` and `docs/adr/`. See `docs/agents/domain.md`.
