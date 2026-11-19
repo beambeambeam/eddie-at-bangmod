@@ -1,5 +1,5 @@
 import type { Database } from "@eddie-at-bangmod/db";
 
-export type Context = {
+export interface Context {
   db: Database;
-};
+}

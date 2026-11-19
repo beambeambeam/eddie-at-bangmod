@@ -1,42 +1,41 @@
+import oxfmt from "ultracite/oxfmt";
+import antiSlop from "ultracite/oxlint/anti-slop";
+import core from "ultracite/oxlint/core";
+import react from "ultracite/oxlint/react";
+import tanstack from "ultracite/oxlint/tanstack";
 import { defineConfig } from "vite-plus";
+
+const ignorePatterns = [
+  "apps/web/.vinxi/**",
+  "apps/web/.tanstack/**",
+  "apps/web/src/routeTree.gen.ts",
+  "apps/web/worker-configuration.d.ts",
+  ".alchemy/**",
+  ".agents/**",
+  ".claude/**",
+  "skills-lock.json",
+];
 
 export default defineConfig({
   lint: {
-    ignorePatterns: [
-      "node_modules/**",
-      "**/node_modules/**",
-      "apps/web/dist/**",
-      "apps/web/.vinxi/**",
-      "apps/web/.tanstack/**",
-      "apps/web/src/routeTree.gen.ts",
-      "packages/db/dist/**",
-      "packages/api/dist/**",
-      ".alchemy/**",
-      ".wrangler/**",
-      "**/.wrangler/**",
+    extends: [core, react, tanstack, antiSlop],
+    env: core.env,
+    ignorePatterns: [...core.ignorePatterns, ...ignorePatterns],
+    overrides: [
+      {
+        // Empty schema module until tables exist; drizzle needs a module.
+        files: ["packages/db/src/schema/index.ts"],
+        rules: { "unicorn/require-module-specifiers": "off" },
+      },
     ],
     options: {
-      typeAware: false,
-      typeCheck: false,
+      typeAware: true,
+      typeCheck: true,
     },
   },
   fmt: {
-    ignorePatterns: [
-      "node_modules/**",
-      "**/node_modules/**",
-      "apps/web/dist/**",
-      "apps/web/.vinxi/**",
-      "apps/web/.tanstack/**",
-      "apps/web/src/routeTree.gen.ts",
-      "packages/db/dist/**",
-      "packages/api/dist/**",
-      ".alchemy/**",
-      ".wrangler/**",
-      "**/.wrangler/**",
-    ],
-    singleQuote: false,
-    semi: true,
-    sortPackageJson: true,
+    ...oxfmt,
+    ignorePatterns: [...oxfmt.ignorePatterns, ...ignorePatterns],
   },
   staged: {
     "*.{js,ts,jsx,tsx,vue,svelte,json,jsonc,css,md}": "vp check --fix",

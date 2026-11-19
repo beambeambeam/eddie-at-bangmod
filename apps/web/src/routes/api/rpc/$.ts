@@ -8,12 +8,12 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { createContext } from "../../../context";
 
+const logError = (cause: unknown) => {
+  console.error(cause);
+};
+
 const rpcHandler = new RPCHandler(appRouter, {
-  interceptors: [
-    onError((error) => {
-      console.error(error);
-    }),
-  ],
+  interceptors: [onError(logError)],
 });
 
 const apiHandler = new OpenAPIHandler(appRouter, {
@@ -22,28 +22,30 @@ const apiHandler = new OpenAPIHandler(appRouter, {
       schemaConverters: [new ZodToJsonSchemaConverter()],
     }),
   ],
-  interceptors: [
-    onError((error) => {
-      console.error(error);
-    }),
-  ],
+  interceptors: [onError(logError)],
 });
 
-async function handle({ request }: { request: Request }) {
+const handle = async ({ request }: { request: Request }) => {
   const rpcResult = await rpcHandler.handle(request, {
     prefix: "/api/rpc",
-    context: await createContext({ req: request }),
+    context: createContext({ req: request }),
   });
-  if (rpcResult.response) return rpcResult.response;
+
+  if (rpcResult.response) {
+    return rpcResult.response;
+  }
 
   const apiResult = await apiHandler.handle(request, {
     prefix: "/api/rpc/api-reference",
-    context: await createContext({ req: request }),
+    context: createContext({ req: request }),
   });
-  if (apiResult.response) return apiResult.response;
+
+  if (apiResult.response) {
+    return apiResult.response;
+  }
 
   return new Response("Not found", { status: 404 });
-}
+};
 
 export const Route = createFileRoute("/api/rpc/$")({
   server: {
