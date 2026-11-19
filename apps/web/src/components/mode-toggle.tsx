@@ -22,6 +22,7 @@ const ModeToggle = () => {
 
   return (
     <IconButton
+      size="sm"
       icon={ICONS[theme]}
       label={`Theme: ${theme}. Switch to ${NEXT[theme]}`}
       onClick={() => {

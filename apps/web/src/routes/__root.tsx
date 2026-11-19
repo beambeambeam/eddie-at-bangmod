@@ -41,7 +41,9 @@ const RootDocument = () => {
       <body className="plop-surface" style={{ margin: 0, minHeight: "100vh" }}>
         <ThemeProvider initialTheme={initialTheme}>
           <PlopProvider surface="poster" paint={false}>
-            <ModeToggle />
+            <div className="fixed top-4 right-4 z-50">
+              <ModeToggle />
+            </div>
             <Outlet />
           </PlopProvider>
           <Toaster richColors />
