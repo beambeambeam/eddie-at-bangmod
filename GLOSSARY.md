@@ -28,7 +28,7 @@ A short arcade minigame. Eddie, a KMUTT Bangmod student, rushes through a street
 
 ## Leaderboard
 
-**Leaderboard**: The single all-time ranking of the best Score per Device. _Avoid_: Highscores, ranking
+**Leaderboard**: The single all-time ranking of the best Score per Device. A tie goes to the Device that reached the Score first. _Avoid_: Highscores, ranking
 
 **Nickname**: The display name a player gives when posting a Score; not unique and not an account. _Avoid_: Username, handle, account
 

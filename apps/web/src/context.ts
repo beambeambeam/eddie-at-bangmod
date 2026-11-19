@@ -4,6 +4,7 @@ import { getDb } from "./services";
 
 export const createContext = (_options: { req: Request }): ApiContext => ({
   db: getDb(),
+  now: () => new Date(),
 });
 
 export type Context = ReturnType<typeof createContext>;
