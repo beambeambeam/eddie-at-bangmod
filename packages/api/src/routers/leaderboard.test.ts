@@ -44,7 +44,12 @@ describe("posting a Score", () => {
 
     const result = await postRun(device, "Eddie", 1200);
 
-    expect(result).toEqual({ runRank: 1, bestScore: 1200, bestRank: 1 });
+    expect(result).toEqual({
+      runRank: 1,
+      bestScore: 1200,
+      bestRank: 1,
+      newBest: false,
+    });
     expect(await api.leaderboard.top()).toEqual([
       { rank: 1, nickname: "Eddie", score: 1200, at: new Date(time) },
     ]);
@@ -238,7 +243,12 @@ describe("Leaderboard order", () => {
 
     const result = await postRun(newDevice(), "Second", 500);
 
-    expect(result).toEqual({ runRank: 2, bestScore: 500, bestRank: 2 });
+    expect(result).toEqual({
+      runRank: 2,
+      bestScore: 500,
+      bestRank: 2,
+      newBest: false,
+    });
   });
 
   test("the top shows 50 entries and `me` still ranks a Device below them", async () => {
@@ -292,6 +302,56 @@ describe("the Run's own rank", () => {
 
     const result = await postRun(device, "Eddie", 300);
 
-    expect(result).toEqual({ runRank: 2, bestScore: 800, bestRank: 1 });
+    expect(result).toEqual({
+      runRank: 2,
+      bestScore: 800,
+      bestRank: 1,
+      newBest: false,
+    });
+  });
+});
+
+describe("New best", () => {
+  test("a Score above the Device's previous best is a new best", async () => {
+    const device = newDevice();
+    await postRun(device, "Eddie", 500);
+
+    const result = await postRun(device, "Eddie", 800);
+
+    expect(result.newBest).toBe(true);
+  });
+
+  test("a Score equal to the previous best is not a new best", async () => {
+    const device = newDevice();
+    await postRun(device, "Eddie", 500);
+
+    const result = await postRun(device, "Eddie", 500);
+
+    expect(result.newBest).toBe(false);
+  });
+
+  test("a Score below the previous best is not a new best", async () => {
+    const device = newDevice();
+    await postRun(device, "Eddie", 500);
+
+    const result = await postRun(device, "Eddie", 300);
+
+    expect(result.newBest).toBe(false);
+  });
+
+  test("the first Score a Device posts has no best to beat", async () => {
+    const result = await postRun(newDevice(), "Eddie", 500);
+
+    expect(result.newBest).toBe(false);
+  });
+
+  test("another Device's higher Score does not matter", async () => {
+    await postRun(newDevice(), "Top", 900);
+    const device = newDevice();
+    await postRun(device, "Eddie", 100);
+
+    const result = await postRun(device, "Eddie", 200);
+
+    expect(result.newBest).toBe(true);
   });
 });

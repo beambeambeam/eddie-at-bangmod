@@ -11,10 +11,12 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
+import { HapticsToggle, SoundToggle } from "@/components/feedback-toggles";
 import { FullscreenToggle } from "@/components/fullscreen-toggle";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { useFeedbackSettings } from "@/lib/feedback-settings";
 import { getTheme, systemThemeScript } from "@/lib/theme";
 import type { orpc } from "@/utils/orpc";
 
@@ -27,6 +29,7 @@ export interface RouterAppContext {
 
 const RootDocument = () => {
   const initialTheme = Route.useLoaderData();
+  const { sound, haptics } = useFeedbackSettings();
 
   // Static on purpose: later changes go through applyTheme(), not React props.
   const htmlProps = {
@@ -41,8 +44,15 @@ const RootDocument = () => {
       </head>
       <body className="plop-surface" style={{ margin: 0, minHeight: "100vh" }}>
         <ThemeProvider initialTheme={initialTheme}>
-          <PlopProvider surface="poster" paint={false}>
+          <PlopProvider
+            surface="poster"
+            paint={false}
+            sound={sound}
+            haptics={haptics}
+          >
             <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+              <SoundToggle />
+              <HapticsToggle />
               <FullscreenToggle />
               <ModeToggle />
             </div>
