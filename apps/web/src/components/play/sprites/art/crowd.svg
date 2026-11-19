@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="256" viewBox="0 0 384 256">
+  <defs>
+    <filter id="sticker" x="-10%" y="-10%" width="120%" height="120%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="7" result="grow"/>
+      <feFlood flood-color="#FFFDF7"/>
+      <feComposite in2="grow" operator="in" result="halo"/>
+      <feMerge><feMergeNode in="halo"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#sticker)" stroke="#2848D8" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" fill="none">
+<g transform="translate(96 74) scale(0.8)"><rect x="-34" y="40" width="68" height="150" rx="28" fill="#A9B6EE"/><circle cx="0" cy="0" r="38" fill="#F2C39B"/><path d="M-38 -6 C-38 -48 38 -48 38 -6 C24 -26 -24 -26 -38 -6 Z" fill="#1C2E8C"/><circle cx="-13" cy="4" r="5" fill="#1C2E8C" stroke="none"/><circle cx="13" cy="4" r="5" fill="#1C2E8C" stroke="none"/></g>
+<g transform="translate(288 74) scale(0.8)"><rect x="-34" y="40" width="68" height="150" rx="28" fill="#F6A9B8"/><circle cx="0" cy="0" r="38" fill="#F2C39B"/><path d="M-38 -6 C-38 -48 38 -48 38 -6 C24 -26 -24 -26 -38 -6 Z" fill="#1C2E8C"/><circle cx="-13" cy="4" r="5" fill="#1C2E8C" stroke="none"/><circle cx="13" cy="4" r="5" fill="#1C2E8C" stroke="none"/></g>
+<g transform="translate(192 66) scale(0.86)"><rect x="-34" y="40" width="68" height="150" rx="28" fill="#F6C445"/><circle cx="0" cy="0" r="38" fill="#F2C39B"/><path d="M-38 -6 C-38 -48 38 -48 38 -6 C24 -26 -24 -26 -38 -6 Z" fill="#1C2E8C"/><circle cx="-13" cy="4" r="5" fill="#1C2E8C" stroke="none"/><circle cx="13" cy="4" r="5" fill="#1C2E8C" stroke="none"/></g>
+<g transform="translate(64 112) scale(1)"><rect x="-34" y="40" width="68" height="150" rx="28" fill="#D2381E"/><circle cx="0" cy="0" r="38" fill="#F2C39B"/><path d="M-38 -6 C-38 -48 38 -48 38 -6 C24 -26 -24 -26 -38 -6 Z" fill="#1C2E8C"/><circle cx="-13" cy="4" r="5" fill="#1C2E8C" stroke="none"/><circle cx="13" cy="4" r="5" fill="#1C2E8C" stroke="none"/></g>
+<g transform="translate(320 112) scale(1)"><rect x="-34" y="40" width="68" height="150" rx="28" fill="#9FD8B8"/><circle cx="0" cy="0" r="38" fill="#F2C39B"/><path d="M-38 -6 C-38 -48 38 -48 38 -6 C24 -26 -24 -26 -38 -6 Z" fill="#1C2E8C"/><circle cx="-13" cy="4" r="5" fill="#1C2E8C" stroke="none"/><circle cx="13" cy="4" r="5" fill="#1C2E8C" stroke="none"/></g>
+<g transform="translate(140 118) scale(1)"><rect x="-34" y="40" width="68" height="150" rx="28" fill="#9FD8B8"/><circle cx="0" cy="0" r="38" fill="#F2C39B"/><path d="M-38 -6 C-38 -48 38 -48 38 -6 C24 -26 -24 -26 -38 -6 Z" fill="#1C2E8C"/><circle cx="-13" cy="4" r="5" fill="#1C2E8C" stroke="none"/><circle cx="13" cy="4" r="5" fill="#1C2E8C" stroke="none"/></g>
+<g transform="translate(246 118) scale(1)"><rect x="-34" y="40" width="68" height="150" rx="28" fill="#D2381E"/><circle cx="0" cy="0" r="38" fill="#F2C39B"/><path d="M-38 -6 C-38 -48 38 -48 38 -6 C24 -26 -24 -26 -38 -6 Z" fill="#1C2E8C"/><circle cx="-13" cy="4" r="5" fill="#1C2E8C" stroke="none"/><circle cx="13" cy="4" r="5" fill="#1C2E8C" stroke="none"/></g>
+<g transform="translate(192 124) scale(1.06)"><rect x="-34" y="40" width="68" height="150" rx="28" fill="#A9B6EE"/><circle cx="0" cy="0" r="38" fill="#F2C39B"/><path d="M-38 -6 C-38 -48 38 -48 38 -6 C24 -26 -24 -26 -38 -6 Z" fill="#1C2E8C"/><circle cx="-13" cy="4" r="5" fill="#1C2E8C" stroke="none"/><circle cx="13" cy="4" r="5" fill="#1C2E8C" stroke="none"/></g>
+  </g>
+</svg>

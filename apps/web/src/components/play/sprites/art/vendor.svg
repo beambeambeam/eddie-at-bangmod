@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="384" viewBox="0 0 256 384">
+  <defs>
+    <filter id="sticker" x="-10%" y="-10%" width="120%" height="120%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="7" result="grow"/>
+      <feFlood flood-color="#FFFDF7"/>
+      <feComposite in2="grow" operator="in" result="halo"/>
+      <feMerge><feMergeNode in="halo"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#sticker)" stroke="#2848D8" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" fill="none">
+<rect x="96" y="250" width="30" height="110" rx="14" fill="#3B4A92"/>
+<rect x="130" y="250" width="30" height="110" rx="14" fill="#3B4A92"/>
+<ellipse cx="110" cy="362" rx="26" ry="14" fill="#1C2E8C"/>
+<ellipse cx="148" cy="362" rx="26" ry="14" fill="#1C2E8C"/>
+<rect x="46" y="120" width="30" height="80" rx="14" fill="#9FD8B8"/>
+<rect x="180" y="120" width="30" height="80" rx="14" fill="#9FD8B8"/>
+<circle cx="60" cy="112" r="16" fill="#F2C39B"/>
+<circle cx="196" cy="112" r="16" fill="#F2C39B"/>
+<rect x="72" y="150" width="112" height="120" rx="32" fill="#9FD8B8"/>
+<rect x="88" y="190" width="80" height="80" rx="20" fill="#FFFDF7"/>
+<circle cx="128" cy="100" r="56" fill="#F2C39B"/>
+<path d="M66 84 C66 20 190 20 190 84 Z" fill="#D2381E"/>
+<rect x="60" y="76" width="136" height="22" rx="11" fill="#F6C445"/>
+<circle cx="108" cy="112" r="6" fill="#1C2E8C" stroke="none"/>
+<circle cx="148" cy="112" r="6" fill="#1C2E8C" stroke="none"/>
+<path d="M106 130 Q128 152 150 130" fill="none"/>
+  </g>
+</svg>

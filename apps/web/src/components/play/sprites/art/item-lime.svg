@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <defs>
+    <filter id="sticker" x="-10%" y="-10%" width="120%" height="120%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="7" result="grow"/>
+      <feFlood flood-color="#FFFDF7"/>
+      <feComposite in2="grow" operator="in" result="halo"/>
+      <feMerge><feMergeNode in="halo"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#sticker)" stroke="#2848D8" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="none">
+<circle cx="96" cy="96" r="72" fill="#2F8A57"/>
+<circle cx="96" cy="96" r="52" fill="#9FD8B8"/>
+<path d="M96 44 V148 M44 96 H148 M59 59 L133 133 M133 59 L59 133" fill="none"/>
+  </g>
+</svg>
