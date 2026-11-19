@@ -11,6 +11,9 @@ const ignorePatterns = [
   "apps/web/src/routeTree.gen.ts",
   "apps/web/worker-configuration.d.ts",
   ".alchemy/**",
+  ".agents/**",
+  ".claude/**",
+  "skills-lock.json",
 ];
 
 export default defineConfig({
