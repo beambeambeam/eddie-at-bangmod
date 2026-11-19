@@ -1,6 +1,7 @@
 import { PHASE_TICKS, TICKS_PER_SECOND } from "@eddie-at-bangmod/game";
 import type { Phase, RunSnapshot, ShoppingList } from "@eddie-at-bangmod/game";
 import { Sheet, Tag, WordSticker } from "@plop-ui/react";
+import type { Ref } from "react";
 
 import type { RunView } from "@/lib/run-loop";
 
@@ -112,7 +113,14 @@ const phaseCall = ({ phase, tick }: RunSnapshot) =>
  * (ADR-0003): time left, Phase, Score, Combo, Phase calls, the Stun and the
  * Shopping List.
  */
-export const RunHud = ({ view }: { view: RunView }) => {
+export const RunHud = ({
+  view,
+  listRef,
+}: {
+  view: RunView;
+  /** The Shopping List card, where the list-clear burst starts. */
+  listRef: Ref<HTMLDivElement>;
+}) => {
   const { stage, countdown, run } = view;
   const call = stage === "running" ? phaseCall(run) : null;
   const stunned = stage === "running" && run.eddie.stunTicksLeft > 0;
@@ -132,7 +140,11 @@ export const RunHud = ({ view }: { view: RunView }) => {
           </div>
         )}
       </output>
-      {stage !== "finished" && <ShoppingListCard list={run.shoppingList} />}
+      {stage !== "finished" && (
+        <div ref={listRef}>
+          <ShoppingListCard list={run.shoppingList} />
+        </div>
+      )}
     </div>
   );
 };

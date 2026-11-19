@@ -101,6 +101,8 @@ export const runRouter = {
         });
       }
 
+      const previousBest = await entryOf(context.db, input.deviceId);
+
       // Marks the ticket used only if no other post got there first.
       const claimed = await context.db
         .update(runTicket)
@@ -143,6 +145,12 @@ export const runRouter = {
         throw new Error("The Leaderboard entry was not saved.");
       }
 
-      return { runRank, bestScore: best.score, bestRank: best.rank };
+      return {
+        runRank,
+        bestScore: best.score,
+        bestRank: best.rank,
+        // A Device's first post has no best to beat.
+        newBest: previousBest !== undefined && input.score > previousBest.score,
+      };
     }),
 };

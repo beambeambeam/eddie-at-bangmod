@@ -1,3 +1,4 @@
+import { IconButton, InfoIcon } from "@plop-ui/react";
 import { useMutation } from "@tanstack/react-query";
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import {
@@ -5,16 +6,19 @@ import {
   lazy,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 
 import { FloatingJoystick } from "@/components/play/floating-joystick";
+import { HowTo } from "@/components/play/how-to";
 import type { TicketState } from "@/components/play/post-score";
 import { RunHud } from "@/components/play/run-hud";
 import { RunResults } from "@/components/play/run-results";
 import { StallSigns } from "@/components/play/stall-signs";
-import { getDevice } from "@/lib/device";
+import { getDevice, markHowToSeen, subscribeDevice } from "@/lib/device";
+import { useRunFeedback } from "@/lib/feedback/use-run-feedback";
 import { createMoveInput } from "@/lib/move-input";
 import { createRunLoop } from "@/lib/run-loop";
 import { orpc } from "@/utils/orpc";
@@ -25,6 +29,11 @@ const MarketScene = lazy(async () => {
 
   return { default: module.MarketScene };
 });
+
+// Nothing ever changes: this store only tells the server render from the client.
+const subscribeNever = () => () => {
+  // Nothing to stop: no listener was added.
+};
 
 const newSeed = () => Math.floor(Math.random() * 2 ** 32);
 
@@ -51,6 +60,32 @@ const PlayPage = () => {
     ticket = { status: "failed" };
   }
 
+  const listRef = useRef<HTMLDivElement>(null);
+  useRunFeedback(loop, listRef);
+
+  // The how-to shows before a Device's first Run, and "?" opens it again.
+  // The server cannot know either, so until the page is hydrated the Run
+  // is held and nothing shows.
+  const hydrated = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false
+  );
+
+  const seenHowTo = useSyncExternalStore(
+    subscribeDevice,
+    () => getDevice().seenHowTo,
+    () => true
+  );
+
+  const [reopened, setReopened] = useState(false);
+  const howToOpen = hydrated && (!seenHowTo || reopened);
+
+  const handleCloseHowTo = () => {
+    markHowToSeen();
+    setReopened(false);
+  };
+
   const handleJoystick = input.setJoystick;
 
   const handlePlayAgain = () => {
@@ -58,6 +93,10 @@ const PlayPage = () => {
   };
 
   useEffect(() => input.listen(window), [input]);
+  // No time passes behind the how-to Sheet, so reading it costs nothing.
+  useEffect(() => {
+    loop.setHeld(!hydrated || howToOpen);
+  }, [loop, hydrated, howToOpen]);
   useEffect(() => {
     requestTicket({ deviceId: getDevice().id });
 
@@ -82,7 +121,7 @@ const PlayPage = () => {
         </ClientOnly>
         <StallSigns />
         <FloatingJoystick onMove={handleJoystick} />
-        <RunHud view={view} />
+        <RunHud view={view} listRef={listRef} />
         {view.stage === "finished" && (
           <RunResults
             run={view.run}
@@ -90,6 +129,17 @@ const PlayPage = () => {
             onPlayAgain={handlePlayAgain}
           />
         )}
+        <div className="absolute top-14 right-2">
+          <IconButton
+            size="sm"
+            icon={<InfoIcon />}
+            label="How to play"
+            onClick={() => {
+              setReopened(true);
+            }}
+          />
+        </div>
+        {howToOpen && <HowTo onClose={handleCloseHowTo} />}
       </div>
     </main>
   );
