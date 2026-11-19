@@ -1,0 +1,3 @@
+# Game rules live in a pure simulation package
+
+All gameplay rules (movement, pickups, Hazards, Combo, Score, Phases) live in `packages/game`. It is plain TypeScript with no Three.js or React, it runs on a fixed 60 Hz tick, and it uses a seeded random generator. The web app renders its state with react-three-fiber and reads it into the Plop HUD. `packages/api` imports the same rules to compute the Score cap for Run Tickets. We chose this over keeping the logic inside R3F components so the rules can be tested without a renderer, and so the server's Score cap can never drift from the real rules.
