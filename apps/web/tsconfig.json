@@ -21,8 +21,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@eddie-at-bangmod/ui/*": ["../../packages/ui/src/*"]
+      "@/*": ["./src/*"]
     }
   }
 }

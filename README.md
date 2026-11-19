@@ -7,7 +7,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 - **TypeScript** - For type safety and improved developer experience
 - **TanStack Start** - SSR framework with TanStack Router
 - **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
+- **shadcn/ui** - UI primitives live in `apps/web/src/components/ui`
 - **oRPC** - End-to-end type-safe APIs with OpenAPI integration
 - **Drizzle** - TypeScript-first ORM
 - **Cloudflare D1** - Database engine
@@ -45,29 +45,24 @@ Open [http://localhost:3001](http://localhost:3001) in your browser to see the f
 
 ## UI Customization
 
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
+shadcn/ui primitives live in `apps/web`.
 
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
+- Change design tokens and global styles in `apps/web/src/index.css`
+- Adjust shadcn aliases or style config in `apps/web/components.json`
 
-### Add more shared components
+### Add components
 
-Run this from the project root to add more primitives to the shared UI package:
+Run this from `apps/web`:
 
 ```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
+npx shadcn@latest add accordion dialog popover sheet table
 ```
 
-Import shared components like this:
+Import components like this:
 
 ```tsx
-import { Button } from "@eddie-at-bangmod/ui/components/button";
+import { Button } from "@/components/ui/button";
 ```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
 
 ## Environment Configuration
 
