@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import {
   Suspense,
@@ -9,11 +10,14 @@ import {
 } from "react";
 
 import { FloatingJoystick } from "@/components/play/floating-joystick";
+import type { TicketState } from "@/components/play/post-score";
 import { RunHud } from "@/components/play/run-hud";
 import { RunResults } from "@/components/play/run-results";
 import { StallSigns } from "@/components/play/stall-signs";
+import { getDevice } from "@/lib/device";
 import { createMoveInput } from "@/lib/move-input";
 import { createRunLoop } from "@/lib/run-loop";
+import { orpc } from "@/utils/orpc";
 
 // Three.js loads only on the client, and only on this page.
 const MarketScene = lazy(async () => {
@@ -36,6 +40,17 @@ const PlayPage = () => {
     loop.getSnapshot
   );
 
+  // Each Run asks for its Run Ticket as its countdown starts.
+  const startRun = useMutation(orpc.run.start.mutationOptions());
+  const { mutate: requestTicket } = startRun;
+  let ticket: TicketState = { status: "pending" };
+
+  if (startRun.data) {
+    ticket = { status: "ready", ticketId: startRun.data.ticketId };
+  } else if (startRun.isError) {
+    ticket = { status: "failed" };
+  }
+
   const handleJoystick = input.setJoystick;
 
   const handlePlayAgain = () => {
@@ -43,7 +58,11 @@ const PlayPage = () => {
   };
 
   useEffect(() => input.listen(window), [input]);
-  useEffect(() => loop.start(), [loop]);
+  useEffect(() => {
+    requestTicket({ deviceId: getDevice().id });
+
+    return loop.start();
+  }, [loop, requestTicket]);
 
   return (
     <main className="flex min-h-svh items-center justify-center p-4">
@@ -65,7 +84,11 @@ const PlayPage = () => {
         <FloatingJoystick onMove={handleJoystick} />
         <RunHud view={view} />
         {view.stage === "finished" && (
-          <RunResults run={view.run} onPlayAgain={handlePlayAgain} />
+          <RunResults
+            run={view.run}
+            ticket={ticket}
+            onPlayAgain={handlePlayAgain}
+          />
         )}
       </div>
     </main>

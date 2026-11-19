@@ -11,14 +11,17 @@
   },
   "dependencies": {
     "@eddie-at-bangmod/db": "workspace:*",
+    "@eddie-at-bangmod/game": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
+    "drizzle-orm": "1.0.0-rc.5",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@eddie-at-bangmod/config": "workspace:*",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vite-plus": "1.7.0"
   }
 }
