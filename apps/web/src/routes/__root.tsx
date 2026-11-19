@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
+import { FullscreenToggle } from "@/components/fullscreen-toggle";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -41,15 +42,23 @@ const RootDocument = () => {
       <body className="plop-surface" style={{ margin: 0, minHeight: "100vh" }}>
         <ThemeProvider initialTheme={initialTheme}>
           <PlopProvider surface="poster" paint={false}>
-            <div className="fixed top-4 right-4 z-50">
+            <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+              <FullscreenToggle />
               <ModeToggle />
             </div>
             <Outlet />
           </PlopProvider>
           <Toaster richColors />
         </ThemeProvider>
-        <TanStackRouterDevtools position="bottom-left" />
-        <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+        {import.meta.env.DEV && (
+          <>
+            <TanStackRouterDevtools position="bottom-left" />
+            <ReactQueryDevtools
+              position="bottom"
+              buttonPosition="bottom-right"
+            />
+          </>
+        )}
         <Scripts />
       </body>
     </html>
