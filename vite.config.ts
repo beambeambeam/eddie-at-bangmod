@@ -1,42 +1,31 @@
+import oxfmt from "ultracite/oxfmt";
+import antiSlop from "ultracite/oxlint/anti-slop";
+import core from "ultracite/oxlint/core";
+import react from "ultracite/oxlint/react";
+import tanstack from "ultracite/oxlint/tanstack";
 import { defineConfig } from "vite-plus";
+
+const ignorePatterns = [
+  "apps/web/.vinxi/**",
+  "apps/web/.tanstack/**",
+  "apps/web/src/routeTree.gen.ts",
+  "apps/web/worker-configuration.d.ts",
+  ".alchemy/**",
+];
 
 export default defineConfig({
   lint: {
-    ignorePatterns: [
-      "node_modules/**",
-      "**/node_modules/**",
-      "apps/web/dist/**",
-      "apps/web/.vinxi/**",
-      "apps/web/.tanstack/**",
-      "apps/web/src/routeTree.gen.ts",
-      "packages/db/dist/**",
-      "packages/api/dist/**",
-      ".alchemy/**",
-      ".wrangler/**",
-      "**/.wrangler/**",
-    ],
+    extends: [core, react, tanstack, antiSlop],
+    env: core.env,
+    ignorePatterns: [...core.ignorePatterns, ...ignorePatterns],
     options: {
       typeAware: false,
       typeCheck: false,
     },
   },
   fmt: {
-    ignorePatterns: [
-      "node_modules/**",
-      "**/node_modules/**",
-      "apps/web/dist/**",
-      "apps/web/.vinxi/**",
-      "apps/web/.tanstack/**",
-      "apps/web/src/routeTree.gen.ts",
-      "packages/db/dist/**",
-      "packages/api/dist/**",
-      ".alchemy/**",
-      ".wrangler/**",
-      "**/.wrangler/**",
-    ],
-    singleQuote: false,
-    semi: true,
-    sortPackageJson: true,
+    ...oxfmt,
+    ignorePatterns: [...oxfmt.ignorePatterns, ...ignorePatterns],
   },
   staged: {
     "*.{js,ts,jsx,tsx,vue,svelte,json,jsonc,css,md}": "vp check --fix",
