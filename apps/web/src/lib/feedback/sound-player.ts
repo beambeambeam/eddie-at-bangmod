@@ -55,13 +55,13 @@ const ignoreFailure = () => {
 /**
  * Plays the game's sounds with the Web Audio API. Browsers keep audio locked
  * until a tap or key press, so a sound asked for while locked is dropped, not
- * queued: a late burst of old sounds is worse than silence. `unlock` runs
- * from a tap or key press and opens the lock for good.
+ * queued: a late burst of old sounds is worse than silence. Each tap or key
+ * press tries to open the lock while it is closed.
  */
 export interface SoundPlayer {
   play: (sound: SoundName) => void;
-  /** Opens the audio lock on the first tap, pointer press or key press. Returns a function that stops listening. */
-  unlockOnGesture: (target: Window) => () => void;
+  /** Opens the audio lock on a tap or key press whenever it is closed. Returns a function that stops listening. */
+  unlockOnGesture: (target: EventTarget) => () => void;
 }
 
 const GESTURES = ["pointerdown", "touchend", "keydown"] as const;
@@ -100,14 +100,25 @@ export const createSoundPlayer = (): SoundPlayer => {
     const audio = contextNow();
 
     try {
-      await audio.resume();
-      // iOS Safari unlocks audio only when a sound starts inside the tap.
+      const resumed = audio.resume();
+      // iOS Safari unlocks audio only when a sound starts inside the tap, so
+      // the silent sound starts before anything awaits.
       const silence = audio.createBufferSource();
       silence.buffer = audio.createBuffer(1, 1, audio.sampleRate);
       silence.connect(audio.destination);
       silence.start();
+      await resumed;
     } catch {
       // Still locked: the next tap tries again.
+    }
+  };
+
+  // Not every gesture counts: a finger going down does not on Android Chrome
+  // or iOS, and iOS locks audio again after a call. So every gesture tries
+  // while audio is not running.
+  const unlockIfLocked = () => {
+    if (contextNow().state !== "running") {
+      void unlockNow();
     }
   };
 
@@ -123,21 +134,13 @@ export const createSoundPlayer = (): SoundPlayer => {
       }
     },
     unlockOnGesture(target) {
-      const unlock = () => {
-        void unlockNow();
-
-        for (const gesture of GESTURES) {
-          target.removeEventListener(gesture, unlock);
-        }
-      };
-
       for (const gesture of GESTURES) {
-        target.addEventListener(gesture, unlock);
+        target.addEventListener(gesture, unlockIfLocked);
       }
 
       return () => {
         for (const gesture of GESTURES) {
-          target.removeEventListener(gesture, unlock);
+          target.removeEventListener(gesture, unlockIfLocked);
         }
       };
     },

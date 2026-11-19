@@ -1,37 +1,15 @@
 import type { MoveInput } from "@eddie-at-bangmod/game";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { PointerEvent } from "react";
 
-/** How far, in CSS pixels, the knob travels for full speed. */
-const REACH = 48;
-
-/** Drags shorter than this share of the reach count as no input. */
-const DEAD_ZONE = 0.15;
-
-interface Stick {
-  pointerId: number;
-  origin: { x: number; y: number };
-  knob: { x: number; y: number };
-}
-
-const toMove = (dx: number, dy: number): MoveInput => {
-  const length = Math.hypot(dx, dy);
-
-  if (length < REACH * DEAD_ZONE) {
-    return { x: 0, y: 0 };
-  }
-
-  const scale = Math.min(length, REACH) / length / REACH;
-
-  return { x: dx * scale, y: dy * scale };
-};
-
-const clampToReach = (dx: number, dy: number) => {
-  const length = Math.hypot(dx, dy);
-  const scale = length > REACH ? REACH / length : 1;
-
-  return { x: dx * scale, y: dy * scale };
-};
+import {
+  dragStick,
+  pressStick,
+  releaseStick,
+  stickMove,
+  stickReach,
+} from "@/lib/joystick";
+import type { Stick } from "@/lib/joystick";
 
 /** The pointer's position inside the element that listens for it. */
 const local = (event: PointerEvent<HTMLDivElement>) => {
@@ -40,9 +18,19 @@ const local = (event: PointerEvent<HTMLDivElement>) => {
   return { x: event.clientX - frame.left, y: event.clientY - frame.top };
 };
 
+/** The knob's offset: the drag, held inside the reach. */
+const knobOffset = ({ drag }: Stick, reach: number) => {
+  const length = Math.hypot(drag.x, drag.y);
+  const scale = length > reach ? reach / length : 1;
+
+  return { x: drag.x * scale, y: drag.y * scale };
+};
+
 /**
  * A touch joystick that appears where the thumb goes down, anywhere in the
- * play frame, and follows the drag. Keyboard players use WASD or arrows.
+ * play frame, and follows the drag. The first finger owns it until it lifts;
+ * other fingers do nothing. It grows with the card, so tablets get a bigger
+ * stick. Keyboard players use WASD or arrows.
  */
 export const FloatingJoystick = ({
   onMove,
@@ -50,38 +38,47 @@ export const FloatingJoystick = ({
   onMove: (move: MoveInput | null) => void;
 }) => {
   const [stick, setStick] = useState<Stick | null>(null);
+  const [reach, setReach] = useState(stickReach(0));
+  // Pointer events can arrive faster than React renders, so the latest
+  // stick lives in a ref too: a second finger always sees the first one.
+  const current = useRef<Stick | null>(null);
+
+  const update = (next: Stick | null, nextReach: number) => {
+    if (next === current.current) {
+      return;
+    }
+
+    current.current = next;
+    setStick(next);
+    onMove(stickMove(next, nextReach));
+  };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (stick) {
+    if (current.current) {
       return;
     }
 
     event.currentTarget.setPointerCapture(event.pointerId);
-    const origin = local(event);
-    setStick({ pointerId: event.pointerId, origin, knob: { x: 0, y: 0 } });
-    onMove({ x: 0, y: 0 });
+
+    const nextReach = stickReach(
+      event.currentTarget.getBoundingClientRect().width
+    );
+
+    setReach(nextReach);
+    update(pressStick(null, event.pointerId, local(event)), nextReach);
   };
 
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (stick?.pointerId !== event.pointerId) {
-      return;
+    if (current.current) {
+      update(dragStick(current.current, event.pointerId, local(event)), reach);
     }
-
-    const point = local(event);
-    const dx = point.x - stick.origin.x;
-    const dy = point.y - stick.origin.y;
-    setStick({ ...stick, knob: clampToReach(dx, dy) });
-    onMove(toMove(dx, dy));
   };
 
   const onPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
-    if (stick?.pointerId !== event.pointerId) {
-      return;
-    }
-
-    setStick(null);
-    onMove(null);
+    update(releaseStick(current.current, event.pointerId), reach);
   };
+
+  const knob = stick ? knobOffset(stick, reach) : null;
 
   return (
     <div
@@ -92,12 +89,14 @@ export const FloatingJoystick = ({
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
     >
-      {stick && (
+      {stick && knob && (
         <div
-          className="pointer-events-none absolute size-24 -translate-x-1/2 -translate-y-1/2"
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
           style={{
             left: stick.origin.x,
             top: stick.origin.y,
+            width: reach * 2,
+            height: reach * 2,
             border: "var(--plop-stroke) dashed var(--plop-ink)",
             borderRadius: "var(--plop-radius-blob)",
             background:
@@ -105,9 +104,11 @@ export const FloatingJoystick = ({
           }}
         >
           <div
-            className="absolute top-1/2 left-1/2 size-12"
+            className="absolute top-1/2 left-1/2"
             style={{
-              transform: `translate(calc(-50% + ${stick.knob.x}px), calc(-50% + ${stick.knob.y}px))`,
+              width: reach,
+              height: reach,
+              transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))`,
               border: "var(--plop-stroke) solid var(--plop-ink)",
               borderRadius: "var(--plop-radius-blob)",
               background: "var(--plop-mustard)",

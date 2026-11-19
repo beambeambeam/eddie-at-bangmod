@@ -42,7 +42,7 @@ const RootDocument = () => {
       <head>
         <HeadContent />
       </head>
-      <body className="plop-surface" style={{ margin: 0, minHeight: "100vh" }}>
+      <body className="plop-surface m-0 min-h-dvh">
         <ThemeProvider initialTheme={initialTheme}>
           <PlopProvider
             surface="poster"
@@ -50,7 +50,7 @@ const RootDocument = () => {
             sound={sound}
             haptics={haptics}
           >
-            <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+            <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-50 flex items-center gap-2">
               <SoundToggle />
               <HapticsToggle />
               <FullscreenToggle />
@@ -79,7 +79,12 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        name: "viewport",
+        // `viewport-fit=cover` lets the page reach under notches; the
+        // safe-area padding keeps controls clear of them.
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
       { title: "Eddie@Bangmod" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
