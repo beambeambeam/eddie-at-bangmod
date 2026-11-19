@@ -1,0 +1,52 @@
+{
+  "name": "web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b ../../packages/api && vp build",
+    "serve": "vp preview",
+    "check-types": "tsc -b ../../packages/api && vp build && tsc --noEmit",
+    "dev:bare": "vp dev",
+    "env:generate": "varlock codegen"
+  },
+  "dependencies": {
+    "@eddie-at-bangmod/api": "workspace:*",
+    "@eddie-at-bangmod/db": "workspace:*",
+    "@eddie-at-bangmod/ui": "workspace:*",
+    "@libsql/client": "catalog:",
+    "@orpc/client": "catalog:",
+    "@orpc/openapi": "catalog:",
+    "@orpc/server": "catalog:",
+    "@orpc/tanstack-query": "^1.16.2",
+    "@orpc/zod": "catalog:",
+    "@tailwindcss/vite": "^4.3.5",
+    "@tanstack/react-query": "^5.107.1",
+    "@tanstack/react-router": "^1.170.46",
+    "@tanstack/react-router-ssr-query": "^1.167.3",
+    "@tanstack/react-start": "^1.169.5",
+    "libsql": "catalog:",
+    "lucide-react": "catalog:",
+    "next-themes": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sonner": "catalog:",
+    "tailwindcss": "catalog:",
+    "varlock": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@eddie-at-bangmod/config": "workspace:*",
+    "@eddie-at-bangmod/infra": "workspace:*",
+    "@tanstack/react-query-devtools": "^5.107.1",
+    "@tanstack/react-router-devtools": "^1.167.3",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "^6.3.0",
+    "jsdom": "^31.0.0",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "web-vitals": "^6.2.3"
+  }
+}
