@@ -1,33 +1,39 @@
+import {
+  createHazards,
+  moveHazards,
+  startingHazards,
+  touches,
+} from "./hazards";
+import type { Hazard, Hazards, HitterKind } from "./hazards";
 import { MARKET } from "./market";
-import type { Item, Rect } from "./market";
+import type { Item, Rect, Vec2 } from "./market";
 import { createRandom } from "./random";
 import type { Random } from "./random";
 import {
   COMBO_WINDOW_TICKS,
+  CROWD_SLOWDOWN,
+  EDDIE_HALF_SIZE,
   EDDIE_SPEED,
   EDDIE_START,
   ITEM_POINTS,
   MAX_COMBO,
+  PHASE_TICKS,
   RUN_TICKS,
   SHOPPING_LIST_POINTS,
+  STUN_TICKS,
   TICKS_PER_SECOND,
 } from "./rules";
 import { drawShoppingList } from "./shopping-list";
 import type { Dish, ShoppingList } from "./shopping-list";
-
-/** Half the side of Eddie's square footprint on the Market floor. */
-const EDDIE_HALF_SIZE = 0.3;
-
-export interface Vec2 {
-  x: number;
-  y: number;
-}
 
 /**
  * The player's movement for one tick. `x` points right, `y` points down the
  * screen (toward the camera). Longer than 1 is scaled down to length 1.
  */
 export type MoveInput = Vec2;
+
+/** One of the three 30 s thirds of a Run. */
+export type Phase = 1 | 2 | 3;
 
 /** Something that happened during one tick. Drives sounds, haptics and bursts. */
 export type RunEvent =
@@ -43,6 +49,12 @@ export type RunEvent =
       readonly dish: Dish;
       readonly points: number;
     }
+  | {
+      /** A Motorbike or Soi Dog hit Eddie: he is Stunned and the Combo resets. */
+      readonly type: "eddie-hit";
+      readonly hazard: HitterKind;
+    }
+  | { readonly type: "phase-changed"; readonly phase: Phase }
   | { readonly type: "run-ended" };
 
 export interface RunSnapshot {
@@ -52,11 +64,17 @@ export interface RunSnapshot {
   readonly ticksLeft: number;
   /** True once time is up. Later steps change nothing. */
   readonly finished: boolean;
+  /** 1 for the first 30 s, 2 from 30 s, 3 from 60 s. */
+  readonly phase: Phase;
   readonly eddie: {
     readonly position: Vec2;
     /** Unit vector of the last move Eddie tried, in the same axes as input. */
     readonly facing: Vec2;
+    /** Ticks until Eddie can move again after a hit. 0 when he is free. */
+    readonly stunTicksLeft: number;
   };
+  /** Every Hazard in the Market now. Which ones depends on the Phase. */
+  readonly hazards: readonly Hazard[];
   /** The Shopping List Eddie works on now. */
   readonly shoppingList: ShoppingList;
   readonly score: number;
@@ -134,9 +152,17 @@ const walkAxis = (from: Vec2, axis: "x" | "y", delta: number): Vec2 => {
   return { ...from, [axis]: value };
 };
 
-/** Walks one tick. Axes resolve one at a time, so Eddie slides along Stalls. */
-const walk = (from: Vec2, move: Vec2): Vec2 => {
-  const step = EDDIE_SPEED / TICKS_PER_SECOND;
+/**
+ * Walks one tick. Axes resolve one at a time, so Eddie slides along Stalls.
+ * A Crowd he overlaps slows him down.
+ */
+const walk = (from: Vec2, move: Vec2, hazards: readonly Hazard[]): Vec2 => {
+  const inCrowd = hazards.some(
+    (hazard) => hazard.kind === "crowd" && touches(hazard, from)
+  );
+
+  const step =
+    (EDDIE_SPEED / TICKS_PER_SECOND) * (inCrowd ? CROWD_SLOWDOWN : 1);
 
   return walkAxis(walkAxis(from, "x", move.x * step), "y", move.y * step);
 };
@@ -156,6 +182,7 @@ interface RunState {
   snapshot: RunSnapshot;
   /** The tick of the last grab, which times the Combo. */
   lastGrabTick: number | null;
+  readonly hazards: Hazards;
   /** Every chance roll in a Run draws from here, so a seed replays exactly. */
   readonly random: Random;
 }
@@ -215,23 +242,58 @@ const grab = (state: RunState, snapshot: RunSnapshot, item: Item): Grab => {
   };
 };
 
+const phaseAt = (tick: number): Phase => {
+  if (tick < PHASE_TICKS) {
+    return 1;
+  }
+
+  return tick < 2 * PHASE_TICKS ? 2 : 3;
+};
+
+/** Stuns Eddie and resets the Combo. Items and Score stay as they are. */
+const stun = (state: RunState, snapshot: RunSnapshot): RunSnapshot => {
+  state.lastGrabTick = null;
+
+  return {
+    ...snapshot,
+    eddie: { ...snapshot.eddie, stunTicksLeft: STUN_TICKS },
+    combo: 1,
+  };
+};
+
 const advance = (state: RunState, input: MoveInput): RunEvent[] => {
-  const move = clampLength(input);
   const { tick, eddie, combo } = state.snapshot;
+  const stunned = eddie.stunTicksLeft > 0;
+  // A Stunned Eddie ignores input: he neither walks nor turns.
+  const move = stunned ? { x: 0, y: 0 } : clampLength(input);
   const next = tick + 1;
+
+  const phase = phaseAt(next);
+  // Eddie walks first, slowed by the Crowds where they stood last tick.
+  const position = walk(eddie.position, move, state.snapshot.hazards);
+
+  const { hazards, hit } = moveHazards(
+    state.hazards,
+    { tick: next, phase, eddie: position, canHit: !stunned },
+    state.random
+  );
 
   let snapshot: RunSnapshot = {
     ...state.snapshot,
     tick: next,
     ticksLeft: RUN_TICKS - next,
+    phase,
+    hazards,
     eddie: {
-      position: walk(eddie.position, move),
+      position,
       facing: faceToward(move, eddie.facing),
+      stunTicksLeft: Math.max(eddie.stunTicksLeft - 1, 0),
     },
     combo: inComboWindow(state, next) ? combo : 1,
   };
 
-  const events: RunEvent[] = [];
+  const events: RunEvent[] =
+    phase === state.snapshot.phase ? [] : [{ type: "phase-changed", phase }];
 
   const item = itemWithin(snapshot.shoppingList, snapshot.eddie.position);
 
@@ -239,6 +301,11 @@ const advance = (state: RunState, input: MoveInput): RunEvent[] => {
     const result = grab(state, snapshot, item);
     ({ snapshot } = result);
     events.push(...result.events);
+  }
+
+  if (hit) {
+    snapshot = stun(state, snapshot);
+    events.push({ type: "eddie-hit", hazard: hit });
   }
 
   if (next === RUN_TICKS) {
@@ -259,7 +326,13 @@ export const createRun = ({ seed }: RunOptions): Run => {
       tick: 0,
       ticksLeft: RUN_TICKS,
       finished: false,
-      eddie: { position: EDDIE_START, facing: { x: 0, y: 1 } },
+      phase: 1,
+      hazards: startingHazards(),
+      eddie: {
+        position: EDDIE_START,
+        facing: { x: 0, y: 1 },
+        stunTicksLeft: 0,
+      },
       shoppingList: drawShoppingList(random),
       score: 0,
       combo: 1,
@@ -268,6 +341,7 @@ export const createRun = ({ seed }: RunOptions): Run => {
       shoppingListsCleared: 0,
     },
     lastGrabTick: null,
+    hazards: createHazards(),
     random,
   };
 

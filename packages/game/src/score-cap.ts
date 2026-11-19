@@ -40,6 +40,10 @@ const point = {
  * at ×3 from the third Item on. Two pickups in a row always come from
  * different Stalls: Items on a list are distinct, and a new list never asks
  * for the Item that cleared the last one.
+ *
+ * Hazards are left out on purpose: a Crowd only slows Eddie and a Stun only
+ * stops him. Nothing pushes him or adds points, so they can only lower the
+ * best Score.
  */
 export const maxScore = () => {
   const firstTick = ticksFor(
