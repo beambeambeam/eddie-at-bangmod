@@ -138,3 +138,17 @@
     translate: 0 -12px;
   }
 }
+
+/* Set by lockRunTouch while a Run is live: no scroll, pull-to-refresh,
+   double-tap-zoom, text select or long-press menu. */
+html[data-run-lock] {
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html[data-run-lock] body {
+  overscroll-behavior: none;
+}
