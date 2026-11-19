@@ -12,7 +12,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@alchemy.run/cloudflare": "2.0.0-beta.86",
+    "@alchemy.run/cloudflare": "2.0.0-beta.87",
     "@eddie-at-bangmod/config": "workspace:*",
     "@effect/platform-bun": "4.1.4",
     "@effect/platform-node": "4.1.4",
