@@ -1,4 +1,5 @@
 import type { Item } from "@eddie-at-bangmod/game";
+import { Instance, Instances } from "@react-three/drei";
 
 type Form = "sphere" | "capsule" | "box" | "cylinder" | "cone";
 
@@ -20,7 +21,7 @@ const PRODUCE: Record<Item, ProduceLook> = {
     size: [0.2, 0.26, 0.2],
     colors: ["#3f7d33", "#2f6a2a", "#4c8f3a"],
     roughness: 0.85,
-    grid: [6, 3],
+    grid: [6, 2],
     layers: 1,
   },
   pork: {
@@ -28,7 +29,7 @@ const PRODUCE: Record<Item, ProduceLook> = {
     size: [0.28, 0.1, 0.2],
     colors: ["#e9a3a0", "#dd8c8a", "#f1b8b0"],
     roughness: 0.45,
-    grid: [5, 3],
+    grid: [5, 2],
     layers: 1,
   },
   egg: {
@@ -36,7 +37,7 @@ const PRODUCE: Record<Item, ProduceLook> = {
     size: [0.1, 0.13, 0.1],
     colors: ["#f2e3c8", "#e9cfa6", "#f6ecd9"],
     roughness: 0.4,
-    grid: [9, 4],
+    grid: [9, 3],
     layers: 2,
   },
   rice: {
@@ -44,7 +45,7 @@ const PRODUCE: Record<Item, ProduceLook> = {
     size: [0.32, 0.36, 0.32],
     colors: ["#e8dcc0", "#ddd0b0", "#efe6cf"],
     roughness: 0.95,
-    grid: [4, 2],
+    grid: [4, 1],
     layers: 1,
   },
   chili: {
@@ -52,7 +53,7 @@ const PRODUCE: Record<Item, ProduceLook> = {
     size: [0.05, 0.1, 0.05],
     colors: ["#c8231b", "#a91a14", "#e0391f"],
     roughness: 0.3,
-    grid: [12, 5],
+    grid: [12, 3],
     layers: 2,
   },
   garlic: {
@@ -60,7 +61,7 @@ const PRODUCE: Record<Item, ProduceLook> = {
     size: [0.13, 0.12, 0.13],
     colors: ["#efe7e0", "#e3d3d8", "#f4eee6"],
     roughness: 0.7,
-    grid: [8, 4],
+    grid: [8, 2],
     layers: 2,
   },
   "fish-sauce": {
@@ -68,7 +69,7 @@ const PRODUCE: Record<Item, ProduceLook> = {
     size: [0.1, 0.32, 0.1],
     colors: ["#7a3b12", "#8c4a17", "#6b300d"],
     roughness: 0.15,
-    grid: [8, 3],
+    grid: [8, 2],
     layers: 1,
   },
   lime: {
@@ -76,7 +77,7 @@ const PRODUCE: Record<Item, ProduceLook> = {
     size: [0.12, 0.12, 0.12],
     colors: ["#6aa82e", "#5a9a26", "#7cb83a"],
     roughness: 0.5,
-    grid: [9, 4],
+    grid: [9, 3],
     layers: 2,
   },
 };
@@ -115,7 +116,8 @@ const Piece = ({ form }: { form: Form }) => {
 
 /**
  * Model slot `produce-<item>`: the goods heaped on a Stall's tray. The tray
- * top is y = 0 and spans `width` by `depth`, centered on the origin.
+ * top is y = 0 and spans `width` by `depth`, centered on the origin. Every
+ * piece is one instance, so a whole heap costs a single draw call.
  */
 export const ProduceModel = ({
   item,
@@ -143,7 +145,7 @@ export const ProduceModel = ({
         const x = ((column + 0.5 + inset / 2) / across - 0.5) * width;
         const z = ((row + 0.5 + inset / 2) / deep - 0.5) * depth;
         pieces.push(
-          <mesh
+          <Instance
             key={index}
             position={[
               x + wobble(index, 1) * sx * 0.4,
@@ -156,19 +158,18 @@ export const ProduceModel = ({
               wobble(index, 4) * 0.3,
             ]}
             scale={[sx, sy, sz]}
-            castShadow
-            receiveShadow
-          >
-            <Piece form={look.form} />
-            <meshStandardMaterial
-              color={look.colors[index % look.colors.length]}
-              roughness={look.roughness}
-            />
-          </mesh>
+            color={look.colors[index % look.colors.length]}
+          />
         );
       }
     }
   }
 
-  return <group>{pieces}</group>;
+  return (
+    <Instances limit={pieces.length} castShadow receiveShadow>
+      <Piece form={look.form} />
+      <meshStandardMaterial roughness={look.roughness} />
+      {pieces}
+    </Instances>
+  );
 };

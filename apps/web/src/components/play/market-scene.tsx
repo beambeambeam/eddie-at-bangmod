@@ -32,7 +32,11 @@ import {
 } from "./models/hazard-models";
 import { MarketGround } from "./models/market-ground";
 import { StallModel } from "./models/stall-model";
+import { useReducedMotion } from "./motion";
 import { STALL_LOOKS } from "./stall-looks";
+
+/** The most device pixels per CSS pixel the canvas ever draws. */
+const MAX_DPR = 2;
 
 /** How fast Eddie turns toward his facing, per second. */
 const TURN_RATE = 14;
@@ -53,13 +57,10 @@ const plopColor = (token: string) =>
 const turnBetween = (from: number, to: number) =>
   Math.atan2(Math.sin(to - from), Math.cos(to - from));
 
-const prefersReducedMotion = () =>
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 /**
  * Places Eddie at the latest snapshot, turns him toward his facing and drives
  * his walk from the distance he covers. With reduced motion he turns at once
- * and glides without a walk cycle.
+ * and glides without a walk cycle; this follows OS changes live.
  */
 const Eddie = ({ loop }: { loop: RunLoop }) => {
   const { run } = useSyncExternalStore(
@@ -68,7 +69,7 @@ const Eddie = ({ loop }: { loop: RunLoop }) => {
     loop.getSnapshot
   );
 
-  const still = useMemo(() => prefersReducedMotion(), []);
+  const still = useReducedMotion();
   const root = useRef<Group>(null);
   const gait = useRef<Gait>({ phase: 0, pace: 0 });
   const last = useRef<Vec2 | null>(null);
@@ -178,8 +179,8 @@ const Stalls = () => {
 
   return (
     <>
-      {tones.map(({ stall, tone }) => (
-        <StallModel key={stall.item} stall={stall} tint={tone} />
+      {tones.map(({ stall, tone }, index) => (
+        <StallModel key={stall.item} stall={stall} index={index} tint={tone} />
       ))}
     </>
   );
@@ -195,7 +196,7 @@ const Lighting = () => (
       color="#ffbb85"
       intensity={2.4}
       castShadow
-      shadow-mapSize={[2048, 2048]}
+      shadow-mapSize={[1024, 1024]}
       shadow-bias={-0.0004}
       shadow-normalBias={0.02}
       shadow-camera-left={-9}
@@ -236,13 +237,27 @@ const Lighting = () => (
 
 const camera = createMarketCamera();
 
+/** Phones and tablets start on the light setup; desktops start rich. */
+const startsRich = () => !window.matchMedia("(pointer: coarse)").matches;
+
 /**
  * The Market as a lit 3D diorama under the fixed camera. It draws the
  * snapshot only: no rules, and no text (every label is Plop UI over the
- * canvas, ADR-0003). Weak devices drop reflections, AO and bloom.
+ * canvas, ADR-0003).
+ *
+ * Two setups keep it smooth on phones. Rich adds wet-ground reflections, AO,
+ * bloom and a vignette in a post pass. Light skips the post pass and uses the
+ * canvas's own MSAA. Touch devices start light; any device drops to light
+ * when frames run slow. The pixel ratio stops at MAX_DPR and follows the
+ * frame rate.
  */
 export const MarketScene = ({ loop }: { loop: RunLoop }) => {
-  const [rich, setRich] = useState(true);
+  const [rich, setRich] = useState(startsRich);
+  const [dprCap, setDprCap] = useState(1.5);
+
+  const handleChange = ({ factor }: { factor: number }) => {
+    setDprCap(Math.round(MathUtils.lerp(1, MAX_DPR, factor) * 10) / 10);
+  };
 
   const handleDecline = () => {
     setRich(false);
@@ -251,31 +266,32 @@ export const MarketScene = ({ loop }: { loop: RunLoop }) => {
   return (
     <Canvas
       camera={camera}
-      dpr={[1, 1.5]}
-      shadows="soft"
-      gl={{ antialias: false, powerPreference: "high-performance" }}
+      dpr={[1, dprCap]}
+      shadows="percentage"
+      gl={{ antialias: true, powerPreference: "high-performance" }}
     >
-      <PerformanceMonitor onDecline={handleDecline} />
+      <PerformanceMonitor onChange={handleChange} onDecline={handleDecline} />
       <Lighting />
       <MarketGround wet={rich} />
       <MotorbikeLanes />
       <Stalls />
       <Hazards loop={loop} />
       <Eddie loop={loop} />
-      <EffectComposer multisampling={0}>
-        <N8AO
-          enabled={rich}
-          halfRes
-          quality="performance"
-          aoRadius={0.8}
-          distanceFalloff={0.6}
-          intensity={2.5}
-        />
-        <Bloom mipmapBlur luminanceThreshold={1} intensity={rich ? 0.9 : 0} />
-        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-        <Vignette offset={0.3} darkness={0.55} />
-        <Smaa />
-      </EffectComposer>
+      {rich ? (
+        <EffectComposer multisampling={0}>
+          <N8AO
+            halfRes
+            quality="performance"
+            aoRadius={0.8}
+            distanceFalloff={0.6}
+            intensity={2.5}
+          />
+          <Bloom mipmapBlur luminanceThreshold={1} intensity={0.9} />
+          <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+          <Vignette offset={0.3} darkness={0.55} />
+          <Smaa />
+        </EffectComposer>
+      ) : null}
     </Canvas>
   );
 };
