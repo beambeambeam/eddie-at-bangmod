@@ -34,6 +34,7 @@
     "check": "vp check && vp run -r check-types",
     "lint": "vp lint",
     "format": "vp fmt",
+    "test": "vp test",
     "staged": "vp staged",
     "hooks:setup": "vp config",
     "dev:web": "vp run --filter web dev:bare",

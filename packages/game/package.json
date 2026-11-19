@@ -1,0 +1,15 @@
+{
+  "name": "@eddie-at-bangmod/game",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@eddie-at-bangmod/config": "workspace:*",
+    "typescript": "catalog:",
+    "vite-plus": "1.7.0"
+  }
+}

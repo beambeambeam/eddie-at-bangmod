@@ -1,6 +1,7 @@
-import { Button, Doodle, Tag, WordSticker } from "@plop-ui/react";
+import { ButtonLink, Doodle, Tag, WordSticker } from "@plop-ui/react";
 import type { DoodleKind, DoodleTone } from "@plop-ui/react";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import type { ComponentProps } from "react";
 
 interface Decoration {
   kind: DoodleKind;
@@ -55,6 +56,11 @@ const DECORATIONS: Decoration[] = [
   },
 ];
 
+/** Lets Plop's ButtonLink navigate through the router. */
+const RouterLink = ({ href, ...props }: ComponentProps<"a">) => (
+  <Link to={href} {...props} />
+);
+
 const HomeComponent = () => (
   <main className="relative flex min-h-svh items-center justify-center overflow-hidden px-6 py-16">
     {DECORATIONS.map(({ className, ...doodle }) => (
@@ -85,7 +91,9 @@ const HomeComponent = () => (
       </p>
 
       <div className="pt-12">
-        <Button
+        <ButtonLink
+          as={RouterLink}
+          href="/play"
           variant="periwinkle"
           size="lg"
           buddy
@@ -93,7 +101,7 @@ const HomeComponent = () => (
           burst="confetti"
         >
           Play
-        </Button>
+        </ButtonLink>
       </div>
     </div>
   </main>
