@@ -3,6 +3,9 @@ import * as Alchemy from "alchemy";
 import * as Effect from "effect/Effect";
 import "varlock/auto-load";
 
+const PRODUCTION_STAGE = "prod";
+const isProduction = process.env.ALCHEMY_STAGE === PRODUCTION_STAGE;
+
 export const db = Cloudflare.D1.Database("database", {
   migrations: "../../packages/db/src/migrations",
 });
@@ -12,6 +15,8 @@ export const web = Cloudflare.Website.Vite("web", {
   compatibility: {
     flags: ["nodejs_compat", "global_fetch_strictly_public"],
   },
+  // Only the production stage claims the public hostname.
+  domain: isProduction ? "eddie.thisisbeam.fyi" : undefined,
   env: {
     DB: db,
   },
