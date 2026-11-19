@@ -28,11 +28,11 @@ export default Alchemy.Stack(
     providers: Cloudflare.providers(),
     state: Cloudflare.state(),
   },
-  Effect.gen(function* () {
+  Effect.gen(function* stack() {
     const webWorker = yield* web;
 
     return {
       web: webWorker.url,
     };
-  }),
+  })
 );

@@ -11,6 +11,8 @@ declare global {
 
 declare module "cloudflare:workers" {
   namespace Cloudflare {
+    // Declaration merging requires an interface.
+    // oxlint-disable-next-line typescript/no-empty-object-type, typescript/no-empty-interface
     export interface Env extends CloudflareEnv {}
   }
 }

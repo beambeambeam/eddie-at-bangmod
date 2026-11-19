@@ -18,9 +18,16 @@ export default defineConfig({
     extends: [core, react, tanstack, antiSlop],
     env: core.env,
     ignorePatterns: [...core.ignorePatterns, ...ignorePatterns],
+    overrides: [
+      {
+        // Empty schema module until tables exist; drizzle needs a module.
+        files: ["packages/db/src/schema/index.ts"],
+        rules: { "unicorn/require-module-specifiers": "off" },
+      },
+    ],
     options: {
-      typeAware: false,
-      typeCheck: false,
+      typeAware: true,
+      typeCheck: true,
     },
   },
   fmt: {

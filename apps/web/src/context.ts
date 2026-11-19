@@ -2,11 +2,8 @@ import type { Context as ApiContext } from "@eddie-at-bangmod/api/context";
 
 import { getDb } from "./services";
 
-export async function createContext(_options: { req: Request }): Promise<ApiContext> {
-  const db = await getDb();
-  return {
-    db,
-  };
-}
+export const createContext = (_options: { req: Request }): ApiContext => ({
+  db: getDb(),
+});
 
-export type Context = Awaited<ReturnType<typeof createContext>>;
+export type Context = ReturnType<typeof createContext>;

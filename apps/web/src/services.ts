@@ -1,7 +1,6 @@
-import { type Database, createDb } from "@eddie-at-bangmod/db";
+import { createDb } from "@eddie-at-bangmod/db";
+import type { Database } from "@eddie-at-bangmod/db";
 
 import { ENV } from "./env.server";
 
-export function getDb(): Database {
-  return createDb(ENV);
-}
+export const getDb = (): Database => createDb(ENV);
