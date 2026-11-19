@@ -1,0 +1,354 @@
+import { describe, expect, test, vi } from "vite-plus/test";
+
+import {
+  DISHES,
+  EDDIE_SPEED,
+  ITEMS,
+  MARKET,
+  RUN_TICKS,
+  TICKS_PER_SECOND,
+  createRun,
+  maxScore,
+} from "./index";
+import type { Item, Run, RunEvent, Vec2 } from "./index";
+
+const STEP = EDDIE_SPEED / TICKS_PER_SECOND;
+const STILL = { x: 0, y: 0 };
+
+const stepStill = (run: Run, ticks: number) =>
+  Array.from({ length: ticks }, () => run.step(STILL)).flat();
+
+const stallFor = (item: Item | undefined) => {
+  const stall = MARKET.stalls.find((candidate) => candidate.item === item);
+
+  if (!stall) {
+    throw new Error(`No Stall for ${item}`);
+  }
+
+  return stall;
+};
+
+/** Walks along one axis at full speed and lands exactly on `goal`. */
+const walkTo = (run: Run, axis: keyof Vec2, goal: number) => {
+  const events: RunEvent[] = [];
+  const gap = () => goal - run.snapshot().eddie.position[axis];
+
+  while (!run.snapshot().finished && Math.abs(gap()) > 1e-9) {
+    const push = Math.max(-1, Math.min(1, gap() / STEP));
+    events.push(
+      ...run.step(axis === "x" ? { x: push, y: 0 } : { x: 0, y: push })
+    );
+  }
+
+  return events;
+};
+
+/**
+ * Walks Eddie by the middle aisle until he steps onto the inner edge of the
+ * front zone of the Stall for `item`. The longest trip takes about 200 ticks.
+ */
+const visit = (run: Run, item: Item | undefined) => {
+  const { front } = stallFor(item);
+  const inner = front.minX > 0 ? front.minX : front.maxX;
+
+  return [
+    ...walkTo(run, "x", 0),
+    ...walkTo(run, "y", (front.minY + front.maxY) / 2),
+    ...walkTo(run, "x", inner),
+  ];
+};
+
+const listItems = (run: Run) =>
+  run.snapshot().shoppingList.items.map(({ item }) => item);
+
+const ticked = (run: Run) =>
+  run
+    .snapshot()
+    .shoppingList.items.filter((entry) => entry.ticked)
+    .map(({ item }) => item);
+
+describe("Shopping Lists", () => {
+  test("a Run starts with a Shopping List of 3 distinct Items, none ticked", () => {
+    const { shoppingList } = createRun({ seed: 1 }).snapshot();
+
+    expect(DISHES.map((dish) => dish.name)).toContain(shoppingList.dish);
+    expect(shoppingList.items).toHaveLength(3);
+    expect(new Set(shoppingList.items.map(({ item }) => item)).size).toBe(3);
+
+    for (const { item, ticked: done } of shoppingList.items) {
+      expect(ITEMS).toContain(item);
+      expect(done).toBe(false);
+    }
+  });
+});
+
+describe("Pickups", () => {
+  test("walking into the front of a Stall on the list grabs its Item", () => {
+    const run = createRun({ seed: 1 });
+    const [first] = listItems(run);
+
+    const events = visit(run, first);
+
+    expect(ticked(run)).toEqual([first]);
+    expect(events).toEqual([
+      { type: "item-grabbed", item: first, combo: 1, points: 100 },
+    ]);
+    expect(run.snapshot().score).toBe(100);
+    expect(run.snapshot().itemsGrabbed).toBe(1);
+  });
+});
+
+describe("Stalls off the list", () => {
+  test("walking into a Stall not on the list does nothing", () => {
+    const run = createRun({ seed: 1 });
+    const offList = ITEMS.filter((item) => !listItems(run).includes(item));
+
+    const events = offList.flatMap((item) => visit(run, item));
+
+    expect(events).toEqual([]);
+    expect(ticked(run)).toEqual([]);
+    expect(run.snapshot().score).toBe(0);
+  });
+
+  test("a grabbed Item is not grabbed again", () => {
+    const run = createRun({ seed: 1 });
+    const [first] = listItems(run);
+    visit(run, first);
+
+    const events = [...walkTo(run, "x", 0), ...visit(run, first)];
+
+    expect(events).toEqual([]);
+    expect(run.snapshot().itemsGrabbed).toBe(1);
+  });
+});
+
+describe("Completing a Shopping List", () => {
+  test("Items can be grabbed in any order", () => {
+    const run = createRun({ seed: 1 });
+    const [first, second, third] = listItems(run);
+
+    visit(run, third);
+    visit(run, first);
+
+    expect(new Set(ticked(run))).toEqual(new Set([first, third]));
+    expect(ticked(run)).not.toContain(second);
+  });
+
+  test("the last Item clears the list and the next list appears in the same tick", () => {
+    const run = createRun({ seed: 1 });
+    const { dish } = run.snapshot().shoppingList;
+    const [first, second, third] = listItems(run);
+    visit(run, second);
+    visit(run, third);
+    const before = run.snapshot().tick;
+
+    const events = visit(run, first);
+
+    const clearTick = run.snapshot().tick;
+    expect(events.map((event) => event.type)).toEqual([
+      "item-grabbed",
+      "shopping-list-cleared",
+    ]);
+    expect(events[1]).toEqual({
+      type: "shopping-list-cleared",
+      dish,
+      points: 300,
+    });
+    expect(clearTick).toBeGreaterThan(before);
+    expect(run.snapshot().shoppingList.items).toHaveLength(3);
+    expect(ticked(run)).toEqual([]);
+    expect(run.snapshot().shoppingListsCleared).toBe(1);
+  });
+
+  test("a quick clear scores 100 + 200 + 300 for the Items and 300 for the list", () => {
+    const run = createRun({ seed: 1 });
+
+    for (const item of listItems(run)) {
+      visit(run, item);
+    }
+
+    expect(run.snapshot().score).toBe(900);
+  });
+
+  test("the next list never asks for the Item Eddie just grabbed", () => {
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const run = createRun({ seed });
+      const items = listItems(run);
+
+      for (const item of items) {
+        visit(run, item);
+      }
+
+      expect(listItems(run)).not.toContain(items.at(-1));
+    }
+  });
+
+  test("the seed sets the order of the lists", () => {
+    const firstDishes = new Set(
+      Array.from(
+        { length: 20 },
+        (_, seed) => createRun({ seed }).snapshot().shoppingList.dish
+      )
+    );
+
+    expect(firstDishes.size).toBeGreaterThan(1);
+    expect(createRun({ seed: 7 }).snapshot().shoppingList).toEqual(
+      createRun({ seed: 7 }).snapshot().shoppingList
+    );
+  });
+});
+
+describe("Combo", () => {
+  test("quick pickups grow the Combo from ×1 to ×2 to ×3", () => {
+    const run = createRun({ seed: 1 });
+
+    const combos = listItems(run).map((item) => {
+      visit(run, item);
+
+      return run.snapshot().combo;
+    });
+
+    expect(combos).toEqual([1, 2, 3]);
+    expect(run.snapshot().bestCombo).toBe(3);
+  });
+
+  test("the Combo stops at ×3", () => {
+    const run = createRun({ seed: 1 });
+
+    for (const item of listItems(run)) {
+      visit(run, item);
+    }
+
+    const [next] = listItems(run);
+
+    const events = visit(run, next);
+
+    expect(events).toEqual([
+      { type: "item-grabbed", item: next, combo: 3, points: 300 },
+    ]);
+  });
+
+  test("the Combo drops to ×1 once 4 s (240 ticks) pass with no pickup", () => {
+    const run = createRun({ seed: 1 });
+    const [first, second, third] = listItems(run);
+    visit(run, first);
+    visit(run, second);
+
+    stepStill(run, 240);
+    expect(run.snapshot().combo).toBe(2);
+
+    stepStill(run, 1);
+    expect(run.snapshot().combo).toBe(1);
+
+    const events = visit(run, third);
+    expect(events[0]).toEqual({
+      type: "item-grabbed",
+      item: third,
+      combo: 1,
+      points: 100,
+    });
+    expect(run.snapshot().bestCombo).toBe(2);
+  });
+});
+
+describe("The Run's end", () => {
+  test("the Run ends at exactly 5,400 ticks", () => {
+    const run = createRun({ seed: 1 });
+
+    const early = stepStill(run, 5399);
+    expect(run.snapshot().finished).toBe(false);
+    expect(run.snapshot().ticksLeft).toBe(1);
+    expect(early).toEqual([]);
+
+    expect(run.step(STILL)).toEqual([{ type: "run-ended" }]);
+    expect(run.snapshot().finished).toBe(true);
+    expect(run.snapshot().ticksLeft).toBe(0);
+    expect(run.snapshot().tick).toBe(RUN_TICKS);
+  });
+
+  test("steps after the end change nothing", () => {
+    const run = createRun({ seed: 1 });
+    stepStill(run, RUN_TICKS);
+    const ended = run.snapshot();
+
+    expect(run.step({ x: 1, y: 0 })).toEqual([]);
+    expect(run.snapshot()).toBe(ended);
+  });
+
+  test("time left counts steps, not wall-clock time, so a paused Run loses none", () => {
+    vi.useFakeTimers();
+
+    try {
+      const run = createRun({ seed: 1 });
+      stepStill(run, 60);
+
+      vi.advanceTimersByTime(30_000);
+
+      expect(run.snapshot().ticksLeft).toBe(RUN_TICKS - 60);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+/** A fast scripted route: always walks to the needed Item on the closest row. */
+const playFullRun = (seed: number) => {
+  const run = createRun({ seed });
+  const events: RunEvent[] = [];
+
+  while (!run.snapshot().finished) {
+    const { position } = run.snapshot().eddie;
+
+    const [nearest] = run
+      .snapshot()
+      .shoppingList.items.filter((entry) => !entry.ticked)
+      .map(({ item }) => item)
+      .toSorted(
+        (a, b) =>
+          Math.abs(stallFor(a).front.minY - position.y) -
+          Math.abs(stallFor(b).front.minY - position.y)
+      );
+
+    events.push(...visit(run, nearest));
+  }
+
+  return { run, events };
+};
+
+describe("A full Run", () => {
+  test("the result summary matches the Run's events", () => {
+    const { run, events } = playFullRun(3);
+
+    const { score, itemsGrabbed, shoppingListsCleared, bestCombo } =
+      run.snapshot();
+
+    const grabs = events.filter((event) => event.type === "item-grabbed");
+
+    const clears = events.filter(
+      (event) => event.type === "shopping-list-cleared"
+    );
+
+    expect(itemsGrabbed).toBe(grabs.length);
+    expect(shoppingListsCleared).toBe(clears.length);
+    expect(bestCombo).toBe(Math.max(...grabs.map((event) => event.combo)));
+    expect(score).toBe(
+      [...grabs, ...clears].reduce((sum, event) => sum + event.points, 0)
+    );
+    expect(events.at(-1)).toEqual({ type: "run-ended" });
+    expect(shoppingListsCleared).toBeGreaterThan(10);
+  });
+
+  test("a fast scripted route never beats the Score cap", () => {
+    for (const seed of [1, 2, 3]) {
+      expect(playFullRun(seed).run.snapshot().score).toBeLessThanOrEqual(
+        maxScore()
+      );
+    }
+  });
+
+  test("the same seed and route give the same Score", () => {
+    expect(playFullRun(5).run.snapshot()).toEqual(
+      playFullRun(5).run.snapshot()
+    );
+  });
+});

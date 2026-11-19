@@ -1,7 +1,16 @@
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
-import { Suspense, lazy, useEffect, useMemo } from "react";
+import {
+  Suspense,
+  lazy,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { FloatingJoystick } from "@/components/play/floating-joystick";
+import { RunHud } from "@/components/play/run-hud";
+import { RunResults } from "@/components/play/run-results";
 import { StallSigns } from "@/components/play/stall-signs";
 import { createMoveInput } from "@/lib/move-input";
 import { createRunLoop } from "@/lib/run-loop";
@@ -17,8 +26,21 @@ const newSeed = () => Math.floor(Math.random() * 2 ** 32);
 
 const PlayPage = () => {
   const input = useMemo(() => createMoveInput(), []);
-  const loop = useMemo(() => createRunLoop(newSeed(), input.read), [input]);
+  // Each "Play again" starts a fresh Run with a new seed.
+  const [seed, setSeed] = useState(newSeed);
+  const loop = useMemo(() => createRunLoop(seed, input.read), [input, seed]);
+
+  const view = useSyncExternalStore(
+    loop.subscribe,
+    loop.getSnapshot,
+    loop.getSnapshot
+  );
+
   const handleJoystick = input.setJoystick;
+
+  const handlePlayAgain = () => {
+    setSeed(newSeed());
+  };
 
   useEffect(() => input.listen(window), [input]);
   useEffect(() => loop.start(), [loop]);
@@ -41,6 +63,10 @@ const PlayPage = () => {
         </ClientOnly>
         <StallSigns />
         <FloatingJoystick onMove={handleJoystick} />
+        <RunHud view={view} />
+        {view.stage === "finished" && (
+          <RunResults run={view.run} onPlayAgain={handlePlayAgain} />
+        )}
       </div>
     </main>
   );

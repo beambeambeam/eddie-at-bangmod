@@ -25,10 +25,16 @@ export interface Stall {
   readonly item: Item;
   /** The Stall's footprint on the Market floor. */
   readonly area: Rect;
+  /**
+   * The strip of aisle in front of the Stall, toward the camera. Eddie grabs
+   * the Item when he stands in it and the Item is on his Shopping List.
+   */
+  readonly front: Rect;
 }
 
 const STALL_WIDTH = 2.4;
 const STALL_DEPTH = 1.2;
+const FRONT_DEPTH = 0.8;
 const STALL_COLUMNS = [-2, 2];
 const STALL_ROWS = [-4.2, -1.4, 1.4, 4.2];
 
@@ -36,14 +42,14 @@ const stallAt = (item: Item, index: number): Stall => {
   const x = STALL_COLUMNS[index % STALL_COLUMNS.length] ?? 0;
   const y = STALL_ROWS[Math.floor(index / STALL_COLUMNS.length)] ?? 0;
 
+  const minX = x - STALL_WIDTH / 2;
+  const maxX = x + STALL_WIDTH / 2;
+  const maxY = y + STALL_DEPTH / 2;
+
   return {
     item,
-    area: {
-      minX: x - STALL_WIDTH / 2,
-      minY: y - STALL_DEPTH / 2,
-      maxX: x + STALL_WIDTH / 2,
-      maxY: y + STALL_DEPTH / 2,
-    },
+    area: { minX, minY: y - STALL_DEPTH / 2, maxX, maxY },
+    front: { minX, minY: maxY, maxX, maxY: maxY + FRONT_DEPTH },
   };
 };
 
