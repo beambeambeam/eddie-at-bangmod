@@ -28,11 +28,13 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
 
-      - name: Format, lint, and type-aware lint
-        run: bunx vp check --deny-warnings
-
+      # Build first: it generates the gitignored routeTree.gen.ts that
+      # type-aware lint needs.
       - name: Build and type-check
         run: bun run check-types
+
+      - name: Format, lint, and type-aware lint
+        run: bunx vp check --deny-warnings
 
   deploy:
     name: Deploy
