@@ -297,7 +297,7 @@ export interface HazardTick {
   phase: Phase;
   /** Where Eddie stands after his move this tick. */
   eddie: Vec2;
-  /** False while Eddie is Stunned: nothing can hit him then. */
+  /** False while Eddie is Stunned or just after: nothing can hit him then. */
   canHit: boolean;
 }
 

@@ -22,7 +22,7 @@ A short arcade minigame. Eddie, a KMUTT Bangmod student, rushes through a street
 
 **Hazard**: A Motorbike, Soi Dog, or Crowd in the Market that hinders Eddie but never ends the Run or takes Items. _Avoid_: Enemy, obstacle, trap
 
-**Stun**: A short moment after a Motorbike or Soi Dog hit when Eddie cannot move and the Combo resets; a Crowd only slows Eddie and never Stuns him. _Avoid_: Damage, hurt, knockback
+**Stun**: A short moment after a Motorbike or Soi Dog hit when Eddie cannot move and the Combo resets; a Crowd only slows Eddie and never Stuns him. Right after a Stun, Eddie can walk but nothing can hit him for a moment. _Avoid_: Damage, hurt, knockback
 
 **Phase**: One of three 30-second thirds of a Run, each adding or speeding up Hazards. _Avoid_: Wave, stage, level
 

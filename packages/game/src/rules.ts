@@ -73,3 +73,9 @@ export const EDDIE_HALF_SIZE = 0.3;
 
 /** A Motorbike or Soi Dog hit Stuns Eddie for 1.5 s: he cannot move. */
 export const STUN_TICKS = 1.5 * TICKS_PER_SECOND;
+
+/**
+ * After a Stun, nothing can hit Eddie for 0.5 s while he walks away, so a
+ * Hazard waiting on him cannot Stun him again the moment he is free.
+ */
+export const SAFE_TICKS = 0.5 * TICKS_PER_SECOND;

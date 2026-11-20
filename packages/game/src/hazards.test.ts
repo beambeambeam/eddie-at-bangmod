@@ -4,6 +4,8 @@ import {
   EDDIE_SPEED,
   MARKET,
   PHASE_TICKS,
+  RUN_TICKS,
+  SAFE_TICKS,
   SOI_DOG_CHASE_TICKS,
   STUN_TICKS,
   TICKS_PER_SECOND,
@@ -227,6 +229,33 @@ describe("Motorbike hits", () => {
 
     run.step({ x: 0, y: -1 });
     expect(run.snapshot().eddie.position.y).toBeLessThan(hitAt.y);
+  });
+
+  test("after a Stun, nothing hits Eddie for 0.5 s, even when he stays in the way", () => {
+    expect(SAFE_TICKS).toBe(30);
+
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const run = createRun({ seed });
+      walkTo(run, "x", AISLE_X);
+      walkTo(run, "y", LANE_Y);
+      let lastHit: number | null = null;
+
+      while (!run.snapshot().finished) {
+        const events = run.step(STILL);
+
+        if (events.some((event) => event.type === "eddie-hit")) {
+          const { tick } = run.snapshot();
+
+          if (lastHit !== null) {
+            expect(tick - lastHit).toBeGreaterThan(STUN_TICKS + SAFE_TICKS);
+          }
+
+          lastHit = tick;
+        }
+      }
+
+      expect(run.snapshot().tick).toBe(RUN_TICKS);
+    }
   });
 
   test("a hit resets the Combo to ×1 but keeps every ticked Item", () => {
