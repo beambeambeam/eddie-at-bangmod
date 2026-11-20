@@ -55,17 +55,17 @@ export const HowTo = ({ onClose }: { onClose: () => void }) => {
       <Sheet
         tape="mustard"
         tilt={1}
-        className="my-auto flex w-full max-w-72 flex-col items-center gap-3 p-5 text-center"
+        className="my-auto flex w-full max-w-72 flex-col items-center gap-3 p-5 text-center landscape:grid landscape:max-w-4xl landscape:grid-cols-[1fr_auto] landscape:gap-x-4 landscape:gap-y-2 landscape:py-3"
       >
         <Heading level={2} id="how-to-title" writeOn={false}>
           How to play
         </Heading>
         <ol
-          className="m-0 flex w-full list-none flex-col gap-2 p-0 text-left"
+          className="m-0 flex w-full list-none flex-col gap-2 p-0 text-left landscape:col-span-2 landscape:flex-row"
           style={{ fontFamily: "var(--plop-font-body)" }}
         >
           {CARDS.map(({ title, tone, text }, index) => (
-            <li key={title}>
+            <li key={title} className="landscape:flex-1">
               <StickyNote tone={tone} tilt={index % 2 === 0 ? -1 : 1}>
                 <h3
                   className="m-0 text-base uppercase"
@@ -78,7 +78,7 @@ export const HowTo = ({ onClose }: { onClose: () => void }) => {
             </li>
           ))}
         </ol>
-        <div className="sticky bottom-0 z-10 pt-1">
+        <div className="sticky bottom-0 z-10 pt-1 landscape:static landscape:col-start-2 landscape:row-start-1">
           <Button
             ref={close}
             onClick={onClose}

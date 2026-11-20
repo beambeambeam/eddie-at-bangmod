@@ -1,15 +1,17 @@
-import { Callout } from "@plop-ui/react";
+import { Button, Callout } from "@plop-ui/react";
 import { useSyncExternalStore } from "react";
 
+import { enterLandscape } from "@/lib/landscape";
+
 /**
- * A touch screen held sideways and too short for the portrait card: a phone
- * in landscape. Tablets in landscape are tall enough to show the card.
+ * A touch screen held upright and too narrow for the landscape frame: a
+ * phone in portrait. Tablets in portrait are wide enough to show the frame.
  */
-const PHONE_LANDSCAPE =
-  "(orientation: landscape) and (pointer: coarse) and (max-height: 500px)";
+const PHONE_PORTRAIT =
+  "(orientation: portrait) and (pointer: coarse) and (max-width: 600px)";
 
 const subscribe = (onChange: () => void) => {
-  const query = window.matchMedia(PHONE_LANDSCAPE);
+  const query = window.matchMedia(PHONE_PORTRAIT);
   query.addEventListener("change", onChange);
 
   return () => {
@@ -17,19 +19,29 @@ const subscribe = (onChange: () => void) => {
   };
 };
 
-const getIsPhoneLandscape = () => window.matchMedia(PHONE_LANDSCAPE).matches;
+const getIsPhonePortrait = () => window.matchMedia(PHONE_PORTRAIT).matches;
 const getServerSnapshot = () => false;
 
-/** True while a phone is held in landscape. */
-export const usePhoneLandscape = () =>
-  useSyncExternalStore(subscribe, getIsPhoneLandscape, getServerSnapshot);
+/** True while a phone is held upright. */
+export const usePhonePortrait = () =>
+  useSyncExternalStore(subscribe, getIsPhonePortrait, getServerSnapshot);
 
-/** Asks the player to turn a phone upright. The Run waits meanwhile. */
+/**
+ * Asks the player to turn a phone sideways. The Run waits meanwhile. Where
+ * the browser can, the button goes fullscreen and turns the screen for them.
+ */
 export const RotateNotice = () => (
-  <output className="block max-w-sm">
+  <output className="flex max-w-sm flex-col items-center gap-4">
     <Callout tone="info" title="Rotate your phone" buddy>
-      Market Run plays upright. Turn your phone to portrait to keep going. The
+      Market Run plays sideways. Turn your phone to landscape to keep going. The
       Run waits for you.
     </Callout>
+    <Button
+      onClick={() => {
+        void enterLandscape();
+      }}
+    >
+      Play fullscreen
+    </Button>
   </output>
 );

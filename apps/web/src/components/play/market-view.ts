@@ -1,7 +1,7 @@
 import { MARKET } from "@eddie-at-bangmod/game";
 
-/** The play frame's width / height. Portrait, so it fits a phone held upright. */
-export const FRAME_ASPECT = 3 / 4;
+/** The play frame's width / height. Landscape, so it fills a phone held sideways. */
+export const FRAME_ASPECT = 16 / 9;
 
 /** What the fixed camera sees, in Market units. */
 export const VIEW_WIDTH = MARKET.bounds.maxX - MARKET.bounds.minX + 0.8;

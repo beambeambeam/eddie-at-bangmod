@@ -8,6 +8,7 @@ import {
   Outlet,
   Scripts,
   createRootRouteWithContext,
+  useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
@@ -31,6 +32,11 @@ const RootDocument = () => {
   const initialTheme = Route.useLoaderData();
   const { sound, haptics } = useFeedbackSettings();
 
+  // The play screen folds these into its own Settings menu.
+  const onPlay = useRouterState({
+    select: ({ location }) => location.pathname === "/play",
+  });
+
   // Static on purpose: later changes go through applyTheme(), not React props.
   const htmlProps = {
     className: initialTheme === "dark" ? "dark" : undefined,
@@ -50,12 +56,14 @@ const RootDocument = () => {
             sound={sound}
             haptics={haptics}
           >
-            <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-50 flex items-center gap-2">
-              <SoundToggle />
-              <HapticsToggle />
-              <FullscreenToggle />
-              <ModeToggle />
-            </div>
+            {!onPlay && (
+              <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-50 flex items-center gap-2">
+                <SoundToggle />
+                <HapticsToggle />
+                <FullscreenToggle />
+                <ModeToggle />
+              </div>
+            )}
             <Outlet />
           </PlopProvider>
           <Toaster richColors />
@@ -87,7 +95,10 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
       { title: "Eddie@Bangmod" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+    ],
     scripts: [{ children: systemThemeScript }],
   }),
 
