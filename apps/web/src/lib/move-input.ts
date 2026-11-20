@@ -31,6 +31,10 @@ const isTyping = (target: EventTarget | null) => {
   return "tagName" in target && TEXT_TAGS.has(target.tagName);
 };
 
+/** True for a browser or system shortcut, such as Cmd+D or Ctrl+S. */
+const isShortcut = (event: KeyboardEvent) =>
+  event.metaKey || event.ctrlKey || event.altKey;
+
 /**
  * Merges WASD/arrow keys and the floating joystick into one movement input.
  * A held joystick wins over the keys. Keys typed into a text field stay
@@ -50,7 +54,11 @@ export const createMoveInput = (): MoveInputSource => {
   let joystick: MoveInput | null = null;
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (isDirectionKey(event.code) && !isTyping(event.target)) {
+    if (
+      isDirectionKey(event.code) &&
+      !isShortcut(event) &&
+      !isTyping(event.target)
+    ) {
       event.preventDefault();
       held.add(event.code);
     }
@@ -59,6 +67,12 @@ export const createMoveInput = (): MoveInputSource => {
   const onKeyUp = (event: KeyboardEvent) => {
     if (isDirectionKey(event.code)) {
       held.delete(event.code);
+    }
+
+    // While Cmd is down, macOS sends no keyup for other keys, so a key let go
+    // in that time would stay held forever.
+    if (event.code === "MetaLeft" || event.code === "MetaRight") {
+      held.clear();
     }
   };
 
