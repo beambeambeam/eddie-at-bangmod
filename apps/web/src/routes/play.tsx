@@ -32,6 +32,7 @@ import { enterLandscape } from "@/lib/landscape";
 import { createMoveInput } from "@/lib/move-input";
 import { createRunLoop } from "@/lib/run-loop";
 import { lockRunTouch } from "@/lib/touch-lock";
+import { useRunSelect } from "@/lib/use-run-select";
 import { orpc } from "@/utils/orpc";
 
 // Three.js loads only on the client, and only on this page.
@@ -54,11 +55,9 @@ const PlayPage = () => {
   const [seed, setSeed] = useState(newSeed);
   const loop = useMemo(() => createRunLoop(seed, input.read), [input, seed]);
 
-  const view = useSyncExternalStore(
-    loop.subscribe,
-    loop.getSnapshot,
-    loop.getSnapshot
-  );
+  // The page re-renders only when the stage changes; each piece of the HUD
+  // reads its own values from the loop.
+  const stage = useRunSelect(loop, (view) => view.stage);
 
   // Each Run asks for its Run Ticket as its countdown starts.
   const startRun = useMutation(orpc.run.start.mutationOptions());
@@ -96,7 +95,7 @@ const PlayPage = () => {
   // While the Run is live, every touch steers Eddie. It stays locked behind
   // the rotate notice, so a stray drag cannot pull-to-refresh the Run away.
   const touchLocked =
-    (view.stage === "countdown" || view.stage === "running") && !howToOpen;
+    (stage === "countdown" || stage === "running") && !howToOpen;
 
   const handleCloseHowTo = () => {
     markHowToSeen();
@@ -159,11 +158,8 @@ const PlayPage = () => {
             aria-label="Shopping List"
             className="order-3 mx-auto flex w-full max-w-xl items-center justify-center landscape:order-1 landscape:max-w-none"
           >
-            {view.stage !== "finished" && (
-              <ShoppingListCard
-                list={view.run.shoppingList}
-                listRef={listRef}
-              />
+            {stage !== "finished" && (
+              <ShoppingListCard loop={loop} listRef={listRef} />
             )}
           </aside>
           <div className="@container-size order-2 flex items-center justify-center">
@@ -181,7 +177,7 @@ const PlayPage = () => {
                 </Suspense>
               </ClientOnly>
               <StallSigns />
-              <RunCalls view={view} />
+              <RunCalls loop={loop} />
             </div>
           </div>
           <aside
@@ -200,13 +196,13 @@ const PlayPage = () => {
               <SettingsMenu />
             </div>
             <div className="flex w-full flex-1 items-center justify-center">
-              <Scoreboard run={view.run} />
+              <Scoreboard loop={loop} />
             </div>
           </aside>
         </div>
-        {view.stage === "finished" && (
+        {stage === "finished" && (
           <RunResults
-            run={view.run}
+            run={loop.getSnapshot().run}
             ticket={ticket}
             onPlayAgain={handlePlayAgain}
           />

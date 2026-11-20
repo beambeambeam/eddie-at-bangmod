@@ -15,11 +15,13 @@ import {
   Vignette,
 } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
-import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { memo, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { MathUtils } from "three";
 import type { Group } from "three";
 
 import type { RunLoop } from "@/lib/run-loop";
+import { useRunSelect } from "@/lib/use-run-select";
 
 import { createMarketCamera } from "./market-camera";
 import { EddieModel } from "./models/eddie-model";
@@ -60,15 +62,10 @@ const turnBetween = (from: number, to: number) =>
 /**
  * Places Eddie at the latest snapshot, turns him toward his facing and drives
  * his walk from the distance he covers. With reduced motion he turns at once
- * and glides without a walk cycle; this follows OS changes live.
+ * and glides without a walk cycle; this follows OS changes live. It reads the
+ * snapshot each frame, so ticks never re-render React.
  */
 const Eddie = ({ loop }: { loop: RunLoop }) => {
-  const { run } = useSyncExternalStore(
-    loop.subscribe,
-    loop.getSnapshot,
-    loop.getSnapshot
-  );
-
   const still = useReducedMotion();
   const root = useRef<Group>(null);
   const gait = useRef<Gait>({ phase: 0, pace: 0 });
@@ -81,7 +78,7 @@ const Eddie = ({ loop }: { loop: RunLoop }) => {
       return;
     }
 
-    const { position, facing } = run.eddie;
+    const { position, facing } = loop.getSnapshot().run.eddie;
     const from = last.current ?? position;
     const moved = Math.hypot(position.x - from.x, position.y - from.y);
     last.current = position;
@@ -130,24 +127,65 @@ const HazardFigure = ({ hazard }: { hazard: Hazard }) => {
   }
 };
 
-/** Draws every Hazard at the latest snapshot, turned toward its facing. */
-const Hazards = ({ loop }: { loop: RunLoop }) => {
-  const { run } = useSyncExternalStore(
-    loop.subscribe,
-    loop.getSnapshot,
-    loop.getSnapshot
+const yawOf = ({ facing }: Hazard) => Math.atan2(facing.x, facing.y);
+
+/** What the figure of a Hazard depends on. Its place changes every tick. */
+const castKey = (hazard: Hazard) =>
+  `${hazard.id}:${hazard.kind}:${hazard.radius}:${
+    hazard.kind === "soi-dog" && hazard.chasing
+  }`;
+
+/** Moves one Hazard's figure to its place in the latest snapshot, each frame. */
+const HazardPlace = ({
+  loop,
+  hazard,
+  children,
+}: {
+  loop: RunLoop;
+  hazard: Hazard;
+  children: ReactNode;
+}) => {
+  const root = useRef<Group>(null);
+
+  useFrame(() => {
+    const group = root.current;
+
+    const now = loop
+      .getSnapshot()
+      .run.hazards.find(({ id }) => id === hazard.id);
+
+    if (group && now) {
+      group.position.set(now.position.x, 0, now.position.y);
+      group.rotation.y = yawOf(now);
+    }
+  });
+
+  return (
+    <group
+      ref={root}
+      position={[hazard.position.x, 0, hazard.position.y]}
+      rotation-y={yawOf(hazard)}
+    >
+      {children}
+    </group>
   );
+};
+
+/**
+ * Draws every Hazard at the latest snapshot, turned toward its facing. React
+ * re-renders only when a Hazard comes, goes or changes its figure; movement
+ * happens frame by frame.
+ */
+const Hazards = ({ loop }: { loop: RunLoop }) => {
+  // Subscribes to the cast only: the figures re-render when it changes.
+  useRunSelect(loop, ({ run }) => run.hazards.map(castKey).join("|"));
 
   return (
     <>
-      {run.hazards.map((hazard) => (
-        <group
-          key={hazard.id}
-          position={[hazard.position.x, 0, hazard.position.y]}
-          rotation-y={Math.atan2(hazard.facing.x, hazard.facing.y)}
-        >
+      {loop.getSnapshot().run.hazards.map((hazard) => (
+        <HazardPlace key={hazard.id} loop={loop} hazard={hazard}>
           <HazardFigure hazard={hazard} />
-        </group>
+        </HazardPlace>
       ))}
     </>
   );
@@ -251,7 +289,7 @@ const startsRich = () => !window.matchMedia("(pointer: coarse)").matches;
  * when frames run slow. The pixel ratio stops at MAX_DPR and follows the
  * frame rate.
  */
-export const MarketScene = ({ loop }: { loop: RunLoop }) => {
+const MarketSceneView = ({ loop }: { loop: RunLoop }) => {
   const [rich, setRich] = useState(startsRich);
   const [dprCap, setDprCap] = useState(1.5);
 
@@ -295,3 +333,5 @@ export const MarketScene = ({ loop }: { loop: RunLoop }) => {
     </Canvas>
   );
 };
+
+export const MarketScene = memo(MarketSceneView);
