@@ -50,9 +50,12 @@ const at = (column: number, row: number): Vec2 => ({
 });
 
 /** Crowds drift back and forth on fixed routes through the middle of the Market. */
+const MIDDLE_COLUMN = Math.floor(xs.length / 2);
+const MIDDLE_ROW = Math.floor(ys.length / 2);
+
 const CROWD_ROUTES = [
-  { from: at(1, 0), to: at(1, ys.length - 1) },
-  { from: at(0, 2), to: at(xs.length - 1, 2) },
+  { from: at(MIDDLE_COLUMN, 0), to: at(MIDDLE_COLUMN, ys.length - 1) },
+  { from: at(0, MIDDLE_ROW), to: at(xs.length - 1, MIDDLE_ROW) },
 ];
 
 /** The Soi Dog trots in from the back corner when Phase 3 starts. */

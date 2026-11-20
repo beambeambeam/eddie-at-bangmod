@@ -22,12 +22,12 @@ describe("Eddie's movement", () => {
     expect(run.snapshot().eddie.position).toEqual({ x: 0, y: 0 });
   });
 
-  test("Eddie walks 0.05 units per tick at full input", () => {
+  test("Eddie walks 0.06 units per tick at full input", () => {
     const run = createRun({ seed: 1 });
 
     run.step(RIGHT);
 
-    expect(run.snapshot().eddie.position.x).toBeCloseTo(0.05);
+    expect(run.snapshot().eddie.position.x).toBeCloseTo(0.06);
     expect(run.snapshot().tick).toBe(1);
   });
 
@@ -37,7 +37,7 @@ describe("Eddie's movement", () => {
     run.step({ x: 1, y: 1 });
 
     const { x, y } = run.snapshot().eddie.position;
-    expect(Math.hypot(x, y)).toBeCloseTo(0.05);
+    expect(Math.hypot(x, y)).toBeCloseTo(0.06);
   });
 
   test("a half-pushed joystick walks at half speed", () => {
@@ -45,7 +45,7 @@ describe("Eddie's movement", () => {
 
     run.step({ x: 0, y: -0.5 });
 
-    expect(run.snapshot().eddie.position.y).toBeCloseTo(-0.025);
+    expect(run.snapshot().eddie.position.y).toBeCloseTo(-0.03);
   });
 });
 
@@ -91,10 +91,10 @@ describe("Eddie's facing", () => {
 
 describe("Market edges", () => {
   test.each([
-    { input: RIGHT, axis: "x", stop: 4.2 },
-    { input: LEFT, axis: "x", stop: -4.2 },
-    { input: UP, axis: "y", stop: -5.7 },
-    { input: DOWN, axis: "y", stop: 5.7 },
+    { input: RIGHT, axis: "x", stop: 8.2 },
+    { input: LEFT, axis: "x", stop: -8.2 },
+    { input: UP, axis: "y", stop: -4.7 },
+    { input: DOWN, axis: "y", stop: 4.7 },
   ] as const)(
     "walking $input stops Eddie at $axis = $stop",
     ({ input, axis, stop }) => {
@@ -128,19 +128,19 @@ describe("Stalls", () => {
     stepMany(run, UP, 200);
 
     const { position } = run.snapshot().eddie;
-    expect(position.y).toBeCloseTo(-0.5);
-    expect(position.x).toBeCloseTo(2);
+    expect(position.y).toBeCloseTo(-1.3);
+    expect(position.x).toBeCloseTo(2.4);
   });
 
   test("Eddie stops at the side of a Stall he walks into", () => {
     const run = createRun({ seed: 1 });
 
-    stepMany(run, UP, 28);
+    stepMany(run, UP, 37);
     stepMany(run, RIGHT, 200);
 
     const { position } = run.snapshot().eddie;
     expect(position.x).toBeCloseTo(0.5);
-    expect(position.y).toBeCloseTo(-1.4);
+    expect(position.y).toBeCloseTo(-2.22);
   });
 
   test("Eddie slides along a Stall when he walks into it at an angle", () => {
@@ -148,11 +148,11 @@ describe("Stalls", () => {
 
     stepMany(run, RIGHT, 40);
     stepMany(run, UP, 200);
-    stepMany(run, { x: 1, y: -1 }, 30);
+    stepMany(run, { x: 1, y: -1 }, 15);
 
     const { position } = run.snapshot().eddie;
-    expect(position.y).toBeCloseTo(-0.5);
-    expect(position.x).toBeGreaterThan(2.5);
+    expect(position.y).toBeCloseTo(-1.3);
+    expect(position.x).toBeGreaterThan(2.9);
   });
 });
 
@@ -185,7 +185,7 @@ describe("Run determinism", () => {
 
     run.step(RIGHT);
 
-    expect(before.eddie.position.x).toBeCloseTo(0.05);
+    expect(before.eddie.position.x).toBeCloseTo(0.06);
     expect(run.snapshot()).not.toBe(before);
   });
 

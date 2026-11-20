@@ -94,11 +94,11 @@ describe("Hazards on the Phase schedule", () => {
   });
 
   test("Motorbikes ride faster in Phase 3 than in Phase 2", () => {
-    /** The fastest a Motorbike moves in one tick over the next Phase. */
-    const topSpeed = (run: Run) => {
+    /** The fastest a Motorbike moves in one tick over the next `ticks`. */
+    const topSpeed = (run: Run, ticks: number) => {
       let fastest = 0;
 
-      for (let tick = 0; tick < PHASE_TICKS; tick += 1) {
+      for (let tick = 0; tick < ticks; tick += 1) {
         const before = run.snapshot().hazards;
         run.step(STILL);
 
@@ -120,8 +120,10 @@ describe("Hazards on the Phase schedule", () => {
     const run = createRun({ seed: 3 });
     stepMany(run, STILL, PHASE_TICKS);
 
-    const phase2 = topSpeed(run);
-    const phase3 = topSpeed(run);
+    const phase2 = topSpeed(run, PHASE_TICKS - 1);
+    // This tick enters Phase 3, so it counts for neither.
+    run.step(STILL);
+    const phase3 = topSpeed(run, PHASE_TICKS);
 
     expect(phase2).toBeGreaterThan(0);
     expect(phase3).toBeGreaterThan(phase2);
@@ -174,25 +176,28 @@ describe("Crowds", () => {
   });
 });
 
-/** Lane y = 3.2 runs right under the front of the Chili and Garlic Stalls. */
-const LANE_Y = 3.2;
-const STALL_ROW_Y = 2.4;
+/** The front lane runs right under the front of the Chili and Garlic Stalls. */
+const LANE_Y = 4.2;
+const STALL_FRONT_Y = 2.8;
+
+/** The aisle between the Chili and Garlic Stalls. */
+const AISLE_X = -4;
 
 /**
- * Seed 2 starts on Nam Jim (Chili, Garlic, Lime). Eddie waits by the Chili
- * Stall through Phase 1, grabs Chili and Garlic just before Phase 2, then
- * stands on the lane until the first Motorbike hits him, inside the Combo
- * window.
+ * Seed 2 starts on Nam Jim (Chili, Garlic, Lime). Eddie waits between the
+ * Chili and Garlic Stalls through Phase 1, grabs Chili and Garlic just after
+ * Phase 2 starts, then stands on the front lane until the first Motorbike
+ * hits him, inside the Combo window.
  */
 const hitAfterTwoGrabs = () => {
   const run = createRun({ seed: 2 });
   expect(run.snapshot().shoppingList.dish).toBe("nam-jim");
 
-  walkTo(run, "y", STALL_ROW_Y);
-  walkTo(run, "x", -0.75);
-  stepMany(run, STILL, PHASE_TICKS - 40 - run.snapshot().tick);
-  walkTo(run, "x", -0.8);
-  walkTo(run, "x", 0.8);
+  walkTo(run, "x", AISLE_X);
+  walkTo(run, "y", STALL_FRONT_Y);
+  stepMany(run, STILL, PHASE_TICKS + 20 - run.snapshot().tick);
+  walkTo(run, "x", -4.8);
+  walkTo(run, "x", -3.2);
   walkTo(run, "y", LANE_Y);
 
   let comboBefore = run.snapshot().combo;

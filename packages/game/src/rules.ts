@@ -5,7 +5,7 @@ export const TICKS_PER_SECOND = 60;
 export const RUN_TICKS = 90 * TICKS_PER_SECOND;
 
 /** Eddie's walking speed in Market units per second at full input. */
-export const EDDIE_SPEED = 3;
+export const EDDIE_SPEED = 3.6;
 
 /** Points for one Item at Combo ×1. The Combo multiplies them. */
 export const ITEM_POINTS = 100;
