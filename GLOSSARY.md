@@ -8,6 +8,8 @@ A short arcade minigame. Eddie, a KMUTT Bangmod student, rushes through a street
 
 **Run**: One timed play session of exactly 90 seconds, from start to results. _Avoid_: Round, match, game, level
 
+**Countdown**: The 3-2-1 before a Run. It starts only once the Market is ready to show, and no Run time passes during it. _Avoid_: Intro, warm-up, pre-game
+
 **Market**: The single small play area Eddie moves through during a Run. _Avoid_: Map, level, world
 
 **Stall**: A spot in the Market, run by a Vendor, that offers one kind of Item. _Avoid_: Shop, booth
@@ -20,7 +22,7 @@ A short arcade minigame. Eddie, a KMUTT Bangmod student, rushes through a street
 
 **Hazard**: A Motorbike, Soi Dog, or Crowd in the Market that hinders Eddie but never ends the Run or takes Items. _Avoid_: Enemy, obstacle, trap
 
-**Stun**: A short moment after a Motorbike or Soi Dog hit when Eddie cannot move and the Combo resets; a Crowd only slows Eddie and never Stuns him. _Avoid_: Damage, hurt, knockback
+**Stun**: A short moment after a Motorbike or Soi Dog hit when Eddie cannot move and the Combo resets; a Crowd only slows Eddie and never Stuns him. Right after a Stun, Eddie can walk but nothing can hit him for a moment. _Avoid_: Damage, hurt, knockback
 
 **Phase**: One of three 30-second thirds of a Run, each adding or speeding up Hazards. _Avoid_: Wave, stage, level
 

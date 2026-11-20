@@ -3,8 +3,12 @@ import type { MoveInput, RunEvent, RunSnapshot } from "@eddie-at-bangmod/game";
 
 const TICK_MS = 1000 / TICKS_PER_SECOND;
 
-/** The longest frame gap the loop catches up on. Longer gaps are dropped. */
-const MAX_CATCH_UP_MS = 250;
+/**
+ * The longest frame gap the loop catches up on, about 3 ticks. Longer gaps
+ * are dropped, so a stalled frame slows the Run for a moment instead of
+ * moving Eddie many steps at once.
+ */
+const MAX_CATCH_UP_MS = 50;
 
 /** The 3-2-1 countdown, counted on the same fixed step as the Run. */
 const COUNTDOWN_TICKS = 3 * TICKS_PER_SECOND;

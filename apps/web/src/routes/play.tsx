@@ -1,9 +1,10 @@
-import { IconButton, InfoIcon } from "@plop-ui/react";
+import { IconButton, InfoIcon, Loader } from "@plop-ui/react";
 import { useMutation } from "@tanstack/react-query";
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import {
   Suspense,
   lazy,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -13,6 +14,7 @@ import {
 
 import { FloatingJoystick } from "@/components/play/floating-joystick";
 import { HowTo } from "@/components/play/how-to";
+import { loadMarketScene } from "@/components/play/load-market-scene";
 import type { TicketState } from "@/components/play/post-score";
 import {
   RotateNotice,
@@ -32,14 +34,23 @@ import { enterLandscape } from "@/lib/landscape";
 import { createMoveInput } from "@/lib/move-input";
 import { createRunLoop } from "@/lib/run-loop";
 import { lockRunTouch } from "@/lib/touch-lock";
+import { useRunSelect } from "@/lib/use-run-select";
 import { orpc } from "@/utils/orpc";
 
-// Three.js loads only on the client, and only on this page.
+// Three.js loads only on the client: the home page preloads it while idle.
 const MarketScene = lazy(async () => {
-  const module = await import("@/components/play/market-scene");
+  const module = await loadMarketScene();
 
   return { default: module.MarketScene };
 });
+
+/** Lines the loading card rotates through while the Market gets ready. */
+const LOADING_TIPS = [
+  "Stacking the produce…",
+  "Parking the motorbikes…",
+  "Waking the soi dog…",
+  "Hanging the lights…",
+];
 
 // Nothing ever changes: this store only tells the server render from the client.
 const subscribeNever = () => () => {
@@ -54,11 +65,17 @@ const PlayPage = () => {
   const [seed, setSeed] = useState(newSeed);
   const loop = useMemo(() => createRunLoop(seed, input.read), [input, seed]);
 
-  const view = useSyncExternalStore(
-    loop.subscribe,
-    loop.getSnapshot,
-    loop.getSnapshot
-  );
+  // The page re-renders only when the stage changes; each piece of the HUD
+  // reads its own values from the loop.
+  const stage = useRunSelect(loop, (view) => view.stage);
+
+  // The Countdown waits until the Market is drawn and its shaders are
+  // compiled, so no frame stalls once time runs. It stays ready across Runs.
+  const [marketReady, setMarketReady] = useState(false);
+
+  const handleMarketReady = useCallback(() => {
+    setMarketReady(true);
+  }, []);
 
   // Each Run asks for its Run Ticket as its countdown starts.
   const startRun = useMutation(orpc.run.start.mutationOptions());
@@ -96,7 +113,7 @@ const PlayPage = () => {
   // While the Run is live, every touch steers Eddie. It stays locked behind
   // the rotate notice, so a stray drag cannot pull-to-refresh the Run away.
   const touchLocked =
-    (view.stage === "countdown" || view.stage === "running") && !howToOpen;
+    (stage === "countdown" || stage === "running") && !howToOpen;
 
   const handleCloseHowTo = () => {
     markHowToSeen();
@@ -111,10 +128,11 @@ const PlayPage = () => {
   };
 
   useEffect(() => input.listen(window), [input]);
-  // No time passes behind the how-to Sheet or the rotate notice.
+  // No time passes while the Market loads, or behind the how-to Sheet or
+  // the rotate notice.
   useEffect(() => {
-    loop.setHeld(!hydrated || howToOpen || phonePortrait);
-  }, [loop, hydrated, howToOpen, phonePortrait]);
+    loop.setHeld(!hydrated || !marketReady || howToOpen || phonePortrait);
+  }, [loop, hydrated, marketReady, howToOpen, phonePortrait]);
   useEffect(
     () => (touchLocked ? lockRunTouch(document) : undefined),
     [touchLocked]
@@ -159,11 +177,8 @@ const PlayPage = () => {
             aria-label="Shopping List"
             className="order-3 mx-auto flex w-full max-w-xl items-center justify-center landscape:order-1 landscape:max-w-none"
           >
-            {view.stage !== "finished" && (
-              <ShoppingListCard
-                list={view.run.shoppingList}
-                listRef={listRef}
-              />
+            {stage !== "finished" && (
+              <ShoppingListCard loop={loop} listRef={listRef} />
             )}
           </aside>
           <div className="@container-size order-2 flex items-center justify-center">
@@ -177,11 +192,22 @@ const PlayPage = () => {
             >
               <ClientOnly>
                 <Suspense>
-                  <MarketScene loop={loop} />
+                  <MarketScene loop={loop} onReady={handleMarketReady} />
                 </Suspense>
               </ClientOnly>
               <StallSigns />
-              <RunCalls view={view} />
+              {marketReady ? (
+                <RunCalls loop={loop} />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center p-2">
+                  <Loader
+                    variant="card"
+                    label="Setting up the Market"
+                    tips={LOADING_TIPS}
+                    slowAfter={8000}
+                  />
+                </div>
+              )}
             </div>
           </div>
           <aside
@@ -200,13 +226,13 @@ const PlayPage = () => {
               <SettingsMenu />
             </div>
             <div className="flex w-full flex-1 items-center justify-center">
-              <Scoreboard run={view.run} />
+              <Scoreboard loop={loop} />
             </div>
           </aside>
         </div>
-        {view.stage === "finished" && (
+        {stage === "finished" && (
           <RunResults
-            run={view.run}
+            run={loop.getSnapshot().run}
             ticket={ticket}
             onPlayAgain={handlePlayAgain}
           />

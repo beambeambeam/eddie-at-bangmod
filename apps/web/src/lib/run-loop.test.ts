@@ -56,6 +56,27 @@ test("hiding the page pauses the Run, and no ticks pass while it is hidden", () 
   stop();
 });
 
+test("a stalled frame moves the Run at most 3 ticks, so Eddie never jumps", () => {
+  let gap = 16;
+  vi.stubGlobal("requestAnimationFrame", (draw: FrameRequestCallback) =>
+    setTimeout(() => {
+      draw(performance.now());
+    }, gap)
+  );
+  const loop = createRunLoop(1, () => STILL);
+  const stop = loop.start();
+  vi.advanceTimersByTime(COUNTDOWN_MS + 1000);
+  expect(loop.getSnapshot().stage).toBe("running");
+
+  gap = 500;
+  vi.advanceTimersByTime(16);
+  const before = loop.getSnapshot().run.tick;
+  vi.advanceTimersByTime(500);
+  expect(loop.getSnapshot().run.tick - before).toBeLessThanOrEqual(3);
+
+  stop();
+});
+
 /** Collects every event the loop publishes, in order. */
 const record = (loop: ReturnType<typeof createRunLoop>) => {
   const events: LoopEvent[] = [];

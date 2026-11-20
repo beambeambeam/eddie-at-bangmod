@@ -19,6 +19,7 @@ import {
   MAX_COMBO,
   PHASE_TICKS,
   RUN_TICKS,
+  SAFE_TICKS,
   SHOPPING_LIST_POINTS,
   STUN_TICKS,
   TICKS_PER_SECOND,
@@ -72,6 +73,8 @@ export interface RunSnapshot {
     readonly facing: Vec2;
     /** Ticks until Eddie can move again after a hit. 0 when he is free. */
     readonly stunTicksLeft: number;
+    /** Ticks after a Stun until Hazards can hit Eddie again. 0 when they can. */
+    readonly safeTicksLeft: number;
   };
   /** Every Hazard in the Market now. Which ones depends on the Phase. */
   readonly hazards: readonly Hazard[];
@@ -256,7 +259,11 @@ const stun = (state: RunState, snapshot: RunSnapshot): RunSnapshot => {
 
   return {
     ...snapshot,
-    eddie: { ...snapshot.eddie, stunTicksLeft: STUN_TICKS },
+    eddie: {
+      ...snapshot.eddie,
+      stunTicksLeft: STUN_TICKS,
+      safeTicksLeft: SAFE_TICKS,
+    },
     combo: 1,
   };
 };
@@ -264,6 +271,7 @@ const stun = (state: RunState, snapshot: RunSnapshot): RunSnapshot => {
 const advance = (state: RunState, input: MoveInput): RunEvent[] => {
   const { tick, eddie, combo } = state.snapshot;
   const stunned = eddie.stunTicksLeft > 0;
+  const safe = stunned || eddie.safeTicksLeft > 0;
   // A Stunned Eddie ignores input: he neither walks nor turns.
   const move = stunned ? { x: 0, y: 0 } : clampLength(input);
   const next = tick + 1;
@@ -274,7 +282,7 @@ const advance = (state: RunState, input: MoveInput): RunEvent[] => {
 
   const { hazards, hit } = moveHazards(
     state.hazards,
-    { tick: next, phase, eddie: position, canHit: !stunned },
+    { tick: next, phase, eddie: position, canHit: !safe },
     state.random
   );
 
@@ -288,6 +296,10 @@ const advance = (state: RunState, input: MoveInput): RunEvent[] => {
       position,
       facing: faceToward(move, eddie.facing),
       stunTicksLeft: Math.max(eddie.stunTicksLeft - 1, 0),
+      // The safe time counts down only once the Stun is over.
+      safeTicksLeft: stunned
+        ? eddie.safeTicksLeft
+        : Math.max(eddie.safeTicksLeft - 1, 0),
     },
     combo: inComboWindow(state, next) ? combo : 1,
   };
@@ -332,6 +344,7 @@ export const createRun = ({ seed }: RunOptions): Run => {
         position: EDDIE_START,
         facing: { x: 0, y: 1 },
         stunTicksLeft: 0,
+        safeTicksLeft: 0,
       },
       shoppingList: drawShoppingList(random),
       score: 0,

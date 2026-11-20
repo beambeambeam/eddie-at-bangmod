@@ -16,15 +16,37 @@ type DirectionKey = keyof typeof KEY_DIRECTIONS;
 const isDirectionKey = (code: string): code is DirectionKey =>
   Object.hasOwn(KEY_DIRECTIONS, code);
 
+const TEXT_TAGS = new Set<unknown>(["INPUT", "TEXTAREA", "SELECT"]);
+
+/** True when a key goes into a text field, such as the Nickname field. */
+const isTyping = (target: EventTarget | null) => {
+  if (target === null) {
+    return false;
+  }
+
+  if ("isContentEditable" in target && target.isContentEditable === true) {
+    return true;
+  }
+
+  return "tagName" in target && TEXT_TAGS.has(target.tagName);
+};
+
+/** True for a browser or system shortcut, such as Cmd+D or Ctrl+S. */
+const isShortcut = (event: KeyboardEvent) =>
+  event.metaKey || event.ctrlKey || event.altKey;
+
 /**
  * Merges WASD/arrow keys and the floating joystick into one movement input.
- * A held joystick wins over the keys.
+ * A held joystick wins over the keys. Keys typed into a text field stay
+ * there: they neither move Eddie nor lose their default.
  */
 export interface MoveInputSource {
   read: () => MoveInput;
   setJoystick: (move: MoveInput | null) => void;
-  /** Listens for keys on the window. Returns a function that stops it. */
-  listen: (target: Window) => () => void;
+  /** Listens for keys on `target`, usually the window. Returns a function that stops it. */
+  listen: (
+    target: Pick<Window, "addEventListener" | "removeEventListener">
+  ) => () => void;
 }
 
 export const createMoveInput = (): MoveInputSource => {
@@ -32,7 +54,11 @@ export const createMoveInput = (): MoveInputSource => {
   let joystick: MoveInput | null = null;
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (isDirectionKey(event.code)) {
+    if (
+      isDirectionKey(event.code) &&
+      !isShortcut(event) &&
+      !isTyping(event.target)
+    ) {
       event.preventDefault();
       held.add(event.code);
     }
@@ -41,6 +67,12 @@ export const createMoveInput = (): MoveInputSource => {
   const onKeyUp = (event: KeyboardEvent) => {
     if (isDirectionKey(event.code)) {
       held.delete(event.code);
+    }
+
+    // While Cmd is down, macOS sends no keyup for other keys, so a key let go
+    // in that time would stay held forever.
+    if (event.code === "MetaLeft" || event.code === "MetaRight") {
+      held.clear();
     }
   };
 

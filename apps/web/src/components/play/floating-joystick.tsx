@@ -87,6 +87,7 @@ export const FloatingJoystick = ({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
+      onLostPointerCapture={onPointerEnd}
     >
       {stick && knob && (
         <div
