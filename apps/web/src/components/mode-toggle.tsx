@@ -4,13 +4,13 @@ import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import type { Theme } from "@/lib/theme";
 
-const NEXT: Record<Theme, Theme> = {
+const NEXT_THEME: Record<Theme, Theme> = {
   light: "dark",
   dark: "system",
   system: "light",
 };
 
-const ICONS = {
+const THEME_ICONS = {
   light: <SunIcon />,
   dark: <MoonIcon />,
   system: <MonitorIcon />,
@@ -23,13 +23,13 @@ const ModeToggle = () => {
   return (
     <IconButton
       size="sm"
-      icon={ICONS[theme]}
-      label={`Theme: ${theme}. Switch to ${NEXT[theme]}`}
+      icon={THEME_ICONS[theme]}
+      label={`Theme: ${theme}. Switch to ${NEXT_THEME[theme]}`}
       onClick={() => {
-        setTheme(NEXT[theme]);
+        setTheme(NEXT_THEME[theme]);
       }}
     />
   );
 };
 
-export { ModeToggle };
+export { ModeToggle, NEXT_THEME, THEME_ICONS };

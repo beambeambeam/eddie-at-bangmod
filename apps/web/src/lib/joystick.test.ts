@@ -43,8 +43,8 @@ test("only the owning finger's lift lets go, and then the next finger owns the j
   expect(stickMove(next, REACH)).toEqual({ x: -1, y: 0 });
 });
 
-test("the joystick reaches further on a tablet-sized card than on a phone", () => {
-  // A phone card is about 360 px wide; an iPad portrait card about 780 px.
+test("the joystick reaches further on a tablet than on a phone", () => {
+  // A sideways phone is about 360 px tall; a sideways iPad about 780 px.
   expect(stickReach(360)).toBe(48);
   expect(stickReach(600)).toBe(78);
   expect(stickReach(780)).toBe(96);

@@ -27,10 +27,10 @@ const knobOffset = ({ drag }: Stick, reach: number) => {
 };
 
 /**
- * A touch joystick that appears where the thumb goes down, anywhere in the
- * play frame, and follows the drag. The first finger owns it until it lifts;
- * other fingers do nothing. It grows with the card, so tablets get a bigger
- * stick. Keyboard players use WASD or arrows.
+ * A touch joystick that appears where the thumb goes down, anywhere on the
+ * play screen, and follows the drag. The first finger owns it until it lifts;
+ * other fingers do nothing. It grows with the screen's short side, so tablets
+ * get a bigger stick. Keyboard players use WASD or arrows.
  */
 export const FloatingJoystick = ({
   onMove,
@@ -60,9 +60,8 @@ export const FloatingJoystick = ({
 
     event.currentTarget.setPointerCapture(event.pointerId);
 
-    const nextReach = stickReach(
-      event.currentTarget.getBoundingClientRect().width
-    );
+    const { width, height } = event.currentTarget.getBoundingClientRect();
+    const nextReach = stickReach(Math.min(width, height));
 
     setReach(nextReach);
     update(pressStick(null, event.pointerId, local(event)), nextReach);

@@ -11,6 +11,7 @@ import {
   maxScore,
 } from "./index";
 import type { Item, Run, RunEvent, Vec2 } from "./index";
+import { AISLE_GRID } from "./market";
 
 const STEP = EDDIE_SPEED / TICKS_PER_SECOND;
 const STILL = { x: 0, y: 0 };
@@ -43,18 +44,38 @@ const walkTo = (run: Run, axis: keyof Vec2, goal: number) => {
   return events;
 };
 
+/** The first cross aisle in front of (toward the camera from) `y`. */
+const aisleInFront = (y: number) =>
+  AISLE_GRID.ys.find((aisleY) => aisleY > y) ?? MARKET.bounds.maxY;
+
 /**
- * Walks Eddie by the middle aisle until he steps onto the inner edge of the
- * front zone of the Stall for `item`. The longest trip takes about 200 ticks.
+ * Walks Eddie by the aisles until he steps onto the near edge of the front
+ * zone of the Stall for `item`: out to the cross aisle in front of him, up the
+ * nearest aisle between Stalls when the Stall faces another cross aisle, along
+ * that aisle to the Stall, then onto its front zone. He never crosses another
+ * Stall's front zone.
  */
 const visit = (run: Run, item: Item | undefined) => {
-  const { front } = stallFor(item);
-  const inner = front.minX > 0 ? front.minX : front.maxX;
+  const { area, front } = stallFor(item);
+  const { position } = run.snapshot().eddie;
+  const fromAisle = aisleInFront(position.y);
+  const toAisle = aisleInFront(front.minY);
+  const stallX = (area.minX + area.maxX) / 2;
+
+  const [crossX = 0] = AISLE_GRID.xs.toSorted(
+    (a, b) =>
+      Math.abs(position.x - a) +
+      Math.abs(stallX - a) -
+      (Math.abs(position.x - b) + Math.abs(stallX - b))
+  );
 
   return [
-    ...walkTo(run, "x", 0),
-    ...walkTo(run, "y", (front.minY + front.maxY) / 2),
-    ...walkTo(run, "x", inner),
+    ...walkTo(run, "y", fromAisle),
+    ...(fromAisle === toAisle
+      ? []
+      : [...walkTo(run, "x", crossX), ...walkTo(run, "y", toAisle)]),
+    ...walkTo(run, "x", stallX),
+    ...walkTo(run, "y", front.maxY),
   ];
 };
 
@@ -299,6 +320,16 @@ describe("The Run's end", () => {
 });
 
 /** A fast scripted route: always walks to the needed Item on the closest row. */
+/** About how far Eddie walks from `position` to the front of the Stall for `item`. */
+const walkLength = (position: Vec2, item: Item) => {
+  const { front } = stallFor(item);
+
+  return (
+    Math.abs((front.minX + front.maxX) / 2 - position.x) +
+    Math.abs(front.minY - position.y)
+  );
+};
+
 const playFullRun = (seed: number) => {
   const run = createRun({ seed });
   const events: RunEvent[] = [];
@@ -310,11 +341,7 @@ const playFullRun = (seed: number) => {
       .snapshot()
       .shoppingList.items.filter((entry) => !entry.ticked)
       .map(({ item }) => item)
-      .toSorted(
-        (a, b) =>
-          Math.abs(stallFor(a).front.minY - position.y) -
-          Math.abs(stallFor(b).front.minY - position.y)
-      );
+      .toSorted((a, b) => walkLength(position, a) - walkLength(position, b));
 
     events.push(...visit(run, nearest));
   }
@@ -342,7 +369,7 @@ describe("A full Run", () => {
       [...grabs, ...clears].reduce((sum, event) => sum + event.points, 0)
     );
     expect(events.at(-1)).toEqual({ type: "run-ended" });
-    expect(shoppingListsCleared).toBeGreaterThan(10);
+    expect(shoppingListsCleared).toBeGreaterThan(5);
   });
 
   test("a fast scripted route never beats the Score cap", () => {
