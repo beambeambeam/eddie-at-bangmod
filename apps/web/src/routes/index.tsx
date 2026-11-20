@@ -1,7 +1,9 @@
 import { ButtonLink, Doodle, Tag, WordSticker } from "@plop-ui/react";
 import type { DoodleKind, DoodleTone } from "@plop-ui/react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 
+import { loadMarketScene } from "@/components/play/load-market-scene";
 import { RouterLink } from "@/components/router-link";
 
 interface Decoration {
@@ -57,59 +59,91 @@ const DECORATIONS: Decoration[] = [
   },
 ];
 
-const HomeComponent = () => (
-  <main className="relative flex min-h-svh items-center justify-center overflow-hidden px-6 py-16">
-    {DECORATIONS.map(({ className, ...doodle }) => (
-      <Doodle
-        key={`${doodle.kind}-${className}`}
-        {...doodle}
-        className={`motion-safe:animate-float pointer-events-none absolute ${className}`}
-        style={{ animationDuration: `${3 + doodle.size / 40}s` }}
-      />
-    ))}
+const preloadMarket = () => {
+  void loadMarketScene();
+};
 
-    <div className="relative flex flex-col items-center gap-8 text-center">
-      <Tag tone="mint" pattern="dots" tilt={-3}>
-        A mini game
-      </Tag>
+/**
+ * Fetches the Market scene once the home page is idle, so Play opens fast.
+ * Browsers without idle callbacks wait a moment instead.
+ */
+const usePreloadMarket = () => {
+  useEffect(() => {
+    if ("requestIdleCallback" in window) {
+      const idle = requestIdleCallback(preloadMarket, { timeout: 3000 });
 
-      <div className="flex flex-col items-center gap-2">
-        <WordSticker tone="mustard" size={88} tilt={-4}>
-          Eddie
-        </WordSticker>
-        <WordSticker tone="tomato" size={56} tilt={3}>
-          @Bangmod
-        </WordSticker>
+      return () => {
+        cancelIdleCallback(idle);
+      };
+    }
+
+    const timer = setTimeout(preloadMarket, 1000);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
+};
+
+const HomeComponent = () => {
+  usePreloadMarket();
+
+  return (
+    <main className="relative flex min-h-svh items-center justify-center overflow-hidden px-6 py-16">
+      {DECORATIONS.map(({ className, ...doodle }) => (
+        <Doodle
+          key={`${doodle.kind}-${className}`}
+          {...doodle}
+          className={`motion-safe:animate-float pointer-events-none absolute ${className}`}
+          style={{ animationDuration: `${3 + doodle.size / 40}s` }}
+        />
+      ))}
+
+      <div className="relative flex flex-col items-center gap-8 text-center">
+        <Tag tone="mint" pattern="dots" tilt={-3}>
+          A mini game
+        </Tag>
+
+        <div className="flex flex-col items-center gap-2">
+          <WordSticker tone="mustard" size={88} tilt={-4}>
+            Eddie
+          </WordSticker>
+          <WordSticker tone="tomato" size={56} tilt={3}>
+            @Bangmod
+          </WordSticker>
+        </div>
+
+        <p className="max-w-sm text-lg">
+          A mini game about Eddie in the Market@Bangmod
+        </p>
+
+        <div className="flex flex-col items-center gap-6 pt-12">
+          <ButtonLink
+            as={RouterLink}
+            href="/play"
+            variant="periwinkle"
+            onPointerEnter={preloadMarket}
+            onFocus={preloadMarket}
+            size="lg"
+            buddy
+            buddyMood="congrats"
+            burst="confetti"
+          >
+            Play
+          </ButtonLink>
+          <ButtonLink
+            as={RouterLink}
+            href="/leaderboard"
+            variant="mint"
+            size="sm"
+          >
+            Leaderboard
+          </ButtonLink>
+        </div>
       </div>
-
-      <p className="max-w-sm text-lg">
-        A mini game about Eddie in the Market@Bangmod
-      </p>
-
-      <div className="flex flex-col items-center gap-6 pt-12">
-        <ButtonLink
-          as={RouterLink}
-          href="/play"
-          variant="periwinkle"
-          size="lg"
-          buddy
-          buddyMood="congrats"
-          burst="confetti"
-        >
-          Play
-        </ButtonLink>
-        <ButtonLink
-          as={RouterLink}
-          href="/leaderboard"
-          variant="mint"
-          size="sm"
-        >
-          Leaderboard
-        </ButtonLink>
-      </div>
-    </div>
-  </main>
-);
+    </main>
+  );
+};
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,

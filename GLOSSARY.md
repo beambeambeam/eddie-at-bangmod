@@ -8,6 +8,8 @@ A short arcade minigame. Eddie, a KMUTT Bangmod student, rushes through a street
 
 **Run**: One timed play session of exactly 90 seconds, from start to results. _Avoid_: Round, match, game, level
 
+**Countdown**: The 3-2-1 before a Run. It starts only once the Market is ready to show, and no Run time passes during it. _Avoid_: Intro, warm-up, pre-game
+
 **Market**: The single small play area Eddie moves through during a Run. _Avoid_: Map, level, world
 
 **Stall**: A spot in the Market, run by a Vendor, that offers one kind of Item. _Avoid_: Shop, booth

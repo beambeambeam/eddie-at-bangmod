@@ -5,7 +5,7 @@ import {
   Lightformer,
   PerformanceMonitor,
 } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   Bloom,
   EffectComposer,
@@ -191,6 +191,58 @@ const Hazards = ({ loop }: { loop: RunLoop }) => {
   );
 };
 
+/** Frames drawn after compiling, so shadow and post passes build theirs too. */
+const WARM_FRAMES = 3;
+
+/**
+ * Gets the GPU ready before the Countdown. It builds one of every Hazard
+ * figure under the ground, out of sight, then compiles every shader in the
+ * scene and draws a few frames. A Hazard that first appears mid-Run then
+ * reuses those shaders instead of stalling the frame while they compile.
+ * The copies stay hidden rather than unmounted, so their shaders stay alive.
+ */
+const WarmUp = ({ onReady }: { onReady: () => void }) => {
+  const gl = useThree((state) => state.gl);
+  const scene = useThree((state) => state.scene);
+  const sceneCamera = useThree((state) => state.camera);
+  const [warm, setWarm] = useState(false);
+  // Frames seen before compiling; then frames left to draw after it.
+  const frames = useRef(0);
+  const compiled = useRef<boolean | null>(null);
+
+  useFrame(() => {
+    if (warm) {
+      return;
+    }
+
+    frames.current += 1;
+
+    // The first frame lets the Environment set the scene's lighting, which
+    // every shader depends on.
+    if (compiled.current === null && frames.current > 1) {
+      compiled.current = false;
+      void (async () => {
+        await gl.compileAsync(scene, sceneCamera);
+        compiled.current = true;
+        frames.current = 0;
+      })();
+    }
+
+    if (compiled.current === true && frames.current >= WARM_FRAMES) {
+      setWarm(true);
+      onReady();
+    }
+  });
+
+  return (
+    <group position={[0, -4, 0]} visible={!warm}>
+      <MotorbikeModel />
+      <SoiDogModel chasing />
+      <CrowdModel radius={1} />
+    </group>
+  );
+};
+
 /** Marks each Motorbike lane from edge to edge of the Market. */
 const MotorbikeLanes = () => (
   <>
@@ -288,8 +340,17 @@ const startsRich = () => !window.matchMedia("(pointer: coarse)").matches;
  * canvas's own MSAA. Touch devices start light; any device drops to light
  * when frames run slow. The pixel ratio stops at MAX_DPR and follows the
  * frame rate.
+ *
+ * `onReady` fires once every shader is compiled and the first frames are
+ * drawn, so the Countdown can start on a smooth frame.
  */
-const MarketSceneView = ({ loop }: { loop: RunLoop }) => {
+const MarketSceneView = ({
+  loop,
+  onReady,
+}: {
+  loop: RunLoop;
+  onReady: () => void;
+}) => {
   const [rich, setRich] = useState(startsRich);
   const [dprCap, setDprCap] = useState(1.5);
 
@@ -313,6 +374,7 @@ const MarketSceneView = ({ loop }: { loop: RunLoop }) => {
       <MarketGround wet={rich} />
       <MotorbikeLanes />
       <Stalls />
+      <WarmUp onReady={onReady} />
       <Hazards loop={loop} />
       <Eddie loop={loop} />
       {rich ? (
