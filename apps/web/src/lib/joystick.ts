@@ -70,11 +70,11 @@ const MIN_REACH = 48;
 /** The reach on a big tablet: further, so the stick does not feel tiny. */
 const MAX_REACH = 96;
 
-/** Between the two, the reach grows with the card's width. */
-const REACH_PER_WIDTH = 0.13;
+/** Between the two, the reach grows with the play screen's short side. */
+const REACH_PER_SIDE = 0.13;
 
-/** How far, in CSS pixels, the knob travels for full speed on a card this wide. */
-export const stickReach = (cardWidth: number) =>
+/** How far, in CSS pixels, the knob travels for full speed on a play screen whose short side is this long. */
+export const stickReach = (shortSide: number) =>
   Math.round(
-    Math.min(MAX_REACH, Math.max(MIN_REACH, cardWidth * REACH_PER_WIDTH))
+    Math.min(MAX_REACH, Math.max(MIN_REACH, shortSide * REACH_PER_SIDE))
   );
