@@ -12,6 +12,21 @@ export interface Gait {
   pace: number;
 }
 
+type JointRotation = [x: number, y: number, z: number];
+
+/** Fixed joint rotations in radians for a staged pose. */
+export interface EddiePose {
+  head: JointRotation;
+  leftArm: JointRotation;
+  rightArm: JointRotation;
+  leftLeg: JointRotation;
+  rightLeg: JointRotation;
+}
+
+type EddieMotion =
+  | { gait: RefObject<Gait>; pose?: never }
+  | { gait?: never; pose: EddiePose };
+
 const SKIN = "#c98d63";
 const HAIR = "#1d1a1c";
 const SHIRT = "#f3f1ea";
@@ -55,9 +70,9 @@ const Limb = ({
 /**
  * Model slot `eddie`: a student in a white uniform shirt with a backpack,
  * built from primitives. It faces +z and stands on y = 0. A GLB can replace
- * it later; it only has to read the same Gait.
+ * it later; it only has to read the same gait or pose.
  */
-const EddieFigure = ({ gait }: { gait: RefObject<Gait> }) => {
+const EddieFigure = ({ gait, pose }: EddieMotion) => {
   const body = useRef<Group>(null);
   const leftLeg = useRef<Group>(null);
   const rightLeg = useRef<Group>(null);
@@ -65,6 +80,16 @@ const EddieFigure = ({ gait }: { gait: RefObject<Gait> }) => {
   const rightArm = useRef<Group>(null);
 
   useFrame(() => {
+    if (pose) {
+      body.current?.position.set(0, 0, 0);
+      leftArm.current?.rotation.set(...pose.leftArm);
+      rightArm.current?.rotation.set(...pose.rightArm);
+      leftLeg.current?.rotation.set(...pose.leftLeg);
+      rightLeg.current?.rotation.set(...pose.rightLeg);
+
+      return;
+    }
+
     const { phase, pace } = gait.current;
     const swing = Math.sin(phase) * pace;
 
@@ -125,7 +150,7 @@ const EddieFigure = ({ gait }: { gait: RefObject<Gait> }) => {
       >
         <meshStandardMaterial color={BACKPACK} roughness={0.55} />
       </RoundedBox>
-      <group position={[0, 1.46, 0]}>
+      <group position={[0, 1.46, 0]} rotation={pose?.head}>
         <mesh castShadow>
           <sphereGeometry args={[0.24, 32, 24]} />
           <meshStandardMaterial color={SKIN} roughness={0.55} />

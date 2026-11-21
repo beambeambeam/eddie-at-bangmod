@@ -2,6 +2,9 @@
   "name": "web",
   "private": true,
   "type": "module",
+  "exports": {
+    "./market-art": "./src/components/play/market-art.ts"
+  },
   "scripts": {
     "build": "tsc -b ../../packages/api && vp build",
     "serve": "vp preview",
