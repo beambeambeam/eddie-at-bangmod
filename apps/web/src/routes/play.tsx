@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { FloatingJoystick } from "@/components/play/floating-joystick";
+import { HazardWarnings } from "@/components/play/hazard-warnings";
 import { HowTo } from "@/components/play/how-to";
 import { loadMarketScene } from "@/components/play/load-market-scene";
 import type { TicketState } from "@/components/play/post-score";
@@ -197,7 +198,10 @@ const PlayPage = () => {
               </ClientOnly>
               <StallSigns />
               {marketReady ? (
-                <RunCalls loop={loop} />
+                <>
+                  <RunCalls loop={loop} />
+                  <HazardWarnings loop={loop} />
+                </>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center p-2">
                   <Loader

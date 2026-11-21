@@ -17,6 +17,7 @@ import type {
   MoveInput,
   Run,
   RunEvent,
+  RunSnapshot,
   Vec2,
 } from "./index";
 
@@ -148,6 +149,48 @@ describe("Hazards on the Phase schedule", () => {
           expect(hazard.facing).toEqual({ x: lane?.heading, y: 0 });
         }
       }
+    }
+  });
+
+  test("each lane warns before the first Motorbike and for one second before the next", () => {
+    // Seed 30 sends a Motorbike out on the first tick of Phase 2.
+    const run = createRun({ seed: 30 });
+    stepMany(run, STILL, PHASE_TICKS - 2);
+
+    const frames = Array.from({ length: 10 * TICKS_PER_SECOND }, () => {
+      const frame = run.snapshot();
+      run.step(STILL);
+
+      return frame;
+    });
+
+    for (const lane of MARKET.motorbikeLanes) {
+      const riding = (frame: RunSnapshot) =>
+        frame.hazards.some(
+          ({ kind, position }) => kind === "motorbike" && position.y === lane.y
+        );
+
+      const warned = (frame: RunSnapshot) =>
+        frame.motorbikeWarnings.includes(lane);
+
+      const first = frames.findIndex(riding);
+      const exit = frames.findIndex((frame, i) => i > first && !riding(frame));
+      const next = frames.findIndex((frame, i) => i > exit && riding(frame));
+
+      expect(first).toBeGreaterThan(1);
+      expect(next).toBeGreaterThan(exit);
+      expect(frames.slice(0, first + 1).map(warned)).toEqual([
+        false,
+        ...Array.from({ length: first - 1 }, () => true),
+        false,
+      ]);
+      expect(
+        frames.slice(next - TICKS_PER_SECOND - 1, next + 1).map(warned)
+      ).toEqual([
+        false,
+        ...Array.from({ length: TICKS_PER_SECOND }, () => true),
+        false,
+      ]);
     }
   });
 });
@@ -285,6 +328,19 @@ const soiDog = (run: Run) =>
 const distance = (a: Vec2, b: Vec2) => Math.hypot(a.x - b.x, a.y - b.y);
 
 describe("The Soi Dog", () => {
+  test("its timer reaches one tick before the chase starts", () => {
+    const run = createRun({ seed: 4 });
+    stepMany(run, STILL, 2 * PHASE_TICKS);
+    const chaseInTicks = soiDog(run)?.chaseInTicks ?? 0;
+    expect(chaseInTicks).toBeGreaterThan(TICKS_PER_SECOND);
+
+    stepMany(run, STILL, chaseInTicks - 1);
+    expect(soiDog(run)).toMatchObject({ chasing: false, chaseInTicks: 1 });
+
+    run.step(STILL);
+    expect(soiDog(run)).toMatchObject({ chasing: true, chaseInTicks: null });
+  });
+
   test("it chases Eddie for at most 2 s, then gives up and wanders again", () => {
     const run = createRun({ seed: 4 });
     stepMany(run, STILL, 2 * PHASE_TICKS);
@@ -348,6 +404,7 @@ describe("The Soi Dog", () => {
           bites += 1;
           expect(chasing).toBe(true);
           expect(soiDog(run)?.chasing).toBe(false);
+          expect(soiDog(run)?.chaseInTicks).toBeGreaterThan(0);
           expect(run.snapshot().eddie.stunTicksLeft).toBe(STUN_TICKS);
         }
       }
