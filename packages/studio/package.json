@@ -1,0 +1,28 @@
+{
+  "name": "@eddie-at-bangmod/studio",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "render": "bun src/render.ts"
+  },
+  "dependencies": {
+    "@eddie-at-bangmod/game": "workspace:*",
+    "@react-three/fiber": "^9.8.2",
+    "@react-three/postprocessing": "^3.2.2",
+    "postprocessing": "^6.39.6",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "three": "^0.187.0",
+    "web": "workspace:*"
+  },
+  "devDependencies": {
+    "@eddie-at-bangmod/config": "workspace:*",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/three": "^0.187.0",
+    "playwright": "1.65.1",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}
