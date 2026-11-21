@@ -1,23 +1,9 @@
 import { Button, Heading, Sheet, StickyNote } from "@plop-ui/react";
 import { useEffect, useRef } from "react";
 
-const CARDS = [
-  {
-    title: "Move",
-    tone: "mustard",
-    text: "Drag anywhere to steer Eddie, or use WASD or the arrow keys. To Sprint, push the joystick to its edge or hold Shift while moving.",
-  },
-  {
-    title: "Grab the list",
-    tone: "mint",
-    text: "Walk into the front of a Stall to grab its Item. Get all 3 Items on the Shopping List, in any order.",
-  },
-  {
-    title: "Dodge Hazards",
-    tone: "pink",
-    text: "Crowds slow Eddie down. A Motorbike or the Soi Dog Stuns him for 1.5 s and resets the Combo.",
-  },
-] as const;
+import { LanguageSwitch } from "@/components/language-switch";
+import { useLanguage } from "@/lib/localization/language-provider";
+import { lettered } from "@/lib/localization/lettering";
 
 /**
  * The how-to Sheet: three cards on how a Run works. It shows before a
@@ -25,7 +11,17 @@ const CARDS = [
  * the button or Escape hands the play screen back.
  */
 export const HowTo = ({ onClose }: { onClose: () => void }) => {
+  const {
+    text: { howTo },
+  } = useLanguage();
+
   const close = useRef<HTMLButtonElement>(null);
+
+  const cards = [
+    { title: howTo.move, tone: "mustard", description: howTo.moveText },
+    { title: howTo.grab, tone: "mint", description: howTo.grabText },
+    { title: howTo.dodge, tone: "pink", description: howTo.dodgeText },
+  ] as const;
 
   useEffect(() => {
     close.current?.focus({ preventScroll: true });
@@ -58,14 +54,14 @@ export const HowTo = ({ onClose }: { onClose: () => void }) => {
         className="my-auto flex w-full max-w-72 flex-col items-center gap-3 p-5 text-center landscape:grid landscape:max-w-4xl landscape:grid-cols-[1fr_auto] landscape:gap-x-4 landscape:gap-y-2 landscape:py-3"
       >
         <Heading level={2} id="how-to-title" writeOn={false}>
-          How to play
+          {lettered(howTo.title)}
         </Heading>
         <ol
           className="m-0 flex w-full list-none flex-col gap-2 p-0 text-left landscape:col-span-2 landscape:flex-row"
           style={{ fontFamily: "var(--plop-font-body)" }}
         >
-          {CARDS.map(({ title, tone, text }, index) => (
-            <li key={title} className="landscape:flex-1">
+          {cards.map(({ title, tone, description }, index) => (
+            <li key={tone} className="landscape:flex-1">
               <StickyNote tone={tone} tilt={index % 2 === 0 ? -1 : 1}>
                 <h3
                   className="m-0 text-base uppercase"
@@ -73,12 +69,13 @@ export const HowTo = ({ onClose }: { onClose: () => void }) => {
                 >
                   {`${index + 1} · ${title}`}
                 </h3>
-                <p className="m-0 mt-1 text-sm">{text}</p>
+                <p className="m-0 mt-1 text-sm leading-normal">{description}</p>
               </StickyNote>
             </li>
           ))}
         </ol>
-        <div className="sticky bottom-0 z-10 pt-1 landscape:static landscape:col-start-2 landscape:row-start-1">
+        <div className="sticky bottom-0 z-10 flex flex-wrap justify-center gap-2 pt-1 landscape:static landscape:col-start-2 landscape:row-start-1">
+          <LanguageSwitch />
           <Button
             ref={close}
             onClick={onClose}
@@ -86,7 +83,7 @@ export const HowTo = ({ onClose }: { onClose: () => void }) => {
             buddy
             buddyMood="congrats"
           >
-            Got it
+            {lettered(howTo.close)}
           </Button>
         </div>
       </Sheet>

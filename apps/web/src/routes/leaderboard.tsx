@@ -6,13 +6,23 @@ import { useSyncExternalStore } from "react";
 
 import { RouterLink } from "@/components/router-link";
 import { getDevice, subscribeDevice } from "@/lib/device";
+import { useLanguage } from "@/lib/localization/language-provider";
+import { lettered } from "@/lib/localization/lettering";
 import { orpc } from "@/utils/orpc";
 
 // Bangkok time on server and client alike, so the server render matches.
-const dateFormat = new Intl.DateTimeFormat("en", {
-  dateStyle: "medium",
-  timeZone: "Asia/Bangkok",
-});
+const dateFormats = {
+  en: new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+    timeZone: "Asia/Bangkok",
+  }),
+  th: new Intl.DateTimeFormat("th-TH", {
+    dateStyle: "long",
+    calendar: "buddhist",
+    numberingSystem: "latn",
+    timeZone: "Asia/Bangkok",
+  }),
+};
 
 const YOU_ROW: CSSProperties = {
   background: "var(--plop-fill-mustard)",
@@ -34,26 +44,35 @@ interface Row {
   at: Date;
 }
 
-const EntryRow = ({ entry, isYou }: { entry: Row; isYou: boolean }) => (
-  <tr style={isYou ? YOU_ROW : undefined}>
-    <td className="px-2 py-1 text-right">{`#${entry.rank}`}</td>
-    <td className="px-2 py-1 break-all">
-      {entry.nickname}
-      {isYou && (
-        <>
-          {" "}
-          <Tag tone="ink">you</Tag>
-        </>
-      )}
-    </td>
-    <td className="px-2 py-1 text-right">{entry.score}</td>
-    <td className="px-2 py-1 text-right whitespace-nowrap">
-      {dateFormat.format(entry.at)}
-    </td>
-  </tr>
-);
+const EntryRow = ({ entry, isYou }: { entry: Row; isYou: boolean }) => {
+  const {
+    language,
+    text: { rankings },
+  } = useLanguage();
+
+  return (
+    <tr style={isYou ? YOU_ROW : undefined}>
+      <td className="px-2 py-1 text-right">{`#${entry.rank}`}</td>
+      <td className="px-2 py-1 break-all">
+        {entry.nickname}
+        {isYou && (
+          <>
+            {" "}
+            <Tag tone="ink">{lettered(rankings.you)}</Tag>
+          </>
+        )}
+      </td>
+      <td className="px-2 py-1 text-right">{entry.score}</td>
+      <td className="px-2 py-1 text-right">
+        {dateFormats[language].format(entry.at)}
+      </td>
+    </tr>
+  );
+};
 
 const LeaderboardPage = () => {
+  const { text } = useLanguage();
+  const { rankings } = text;
   const { data: top } = useSuspenseQuery(orpc.leaderboard.top.queryOptions());
   const deviceId = useDeviceId();
 
@@ -73,33 +92,29 @@ const LeaderboardPage = () => {
         className="flex w-full max-w-xl flex-col items-center gap-4 p-5"
       >
         <Heading level={1} writeOn={false}>
-          Leaderboard
+          {lettered(text.leaderboard)}
         </Heading>
         {top.length === 0 ? (
-          <Callout title="No Scores yet">
-            Play a Run and post the first Score.
-          </Callout>
+          <Callout title={lettered(rankings.empty)}>{rankings.first}</Callout>
         ) : (
           <table
             className="w-full border-collapse"
             style={{ fontFamily: "var(--plop-font-body)" }}
           >
-            <caption className="sr-only">
-              Top 50 best Scores. A tie goes to whoever reached the Score first.
-            </caption>
+            <caption className="sr-only">{rankings.caption}</caption>
             <thead>
               <tr>
                 <th scope="col" className="px-2 py-1 text-right">
-                  Rank
+                  {rankings.rank}
                 </th>
                 <th scope="col" className="px-2 py-1 text-left">
-                  Nickname
+                  {text.nickname}
                 </th>
                 <th scope="col" className="px-2 py-1 text-right">
-                  Score
+                  {text.score}
                 </th>
                 <th scope="col" className="px-2 py-1 text-right">
-                  Date
+                  {rankings.date}
                 </th>
               </tr>
             </thead>
@@ -119,11 +134,9 @@ const LeaderboardPage = () => {
                 }}
               >
                 <tr>
-                  <th
-                    scope="row"
-                    colSpan={4}
-                    className="px-2 pt-2 text-left"
-                  >{`you: #${pinned.rank}`}</th>
+                  <th scope="row" colSpan={4} className="px-2 pt-2 text-left">
+                    {rankings.yourRank(pinned.rank)}
+                  </th>
                 </tr>
                 <EntryRow entry={pinned} isYou />
               </tfoot>
@@ -131,24 +144,28 @@ const LeaderboardPage = () => {
           </table>
         )}
         <ButtonLink as={RouterLink} href="/play" variant="periwinkle">
-          Play
+          {lettered(text.play)}
         </ButtonLink>
       </Sheet>
     </main>
   );
 };
 
-const LeaderboardError = () => (
-  <main className="flex min-h-svh items-center justify-center px-4">
-    <Callout tone="error" title="Leaderboard not loaded" role="alert">
-      Could not reach the Leaderboard. Check your connection and reload the
-      page.
-    </Callout>
-  </main>
-);
+const LeaderboardError = () => {
+  const {
+    text: { rankings },
+  } = useLanguage();
+
+  return (
+    <main className="flex min-h-svh items-center justify-center px-4">
+      <Callout tone="error" title={lettered(rankings.loadError)} role="alert">
+        {rankings.reload}
+      </Callout>
+    </main>
+  );
+};
 
 export const Route = createFileRoute("/leaderboard")({
-  head: () => ({ meta: [{ title: "Leaderboard · Eddie@Bangmod" }] }),
   // Fetches on the server, so the page arrives with the top 50 in it.
   loader: async ({ context }) => {
     await context.queryClient.query(

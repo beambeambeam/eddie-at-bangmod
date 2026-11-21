@@ -3,6 +3,8 @@ import type { Hazard } from "@eddie-at-bangmod/game";
 import { ArrowRightIcon, Tag, WarnIcon } from "@plop-ui/react";
 import { useLayoutEffect, useRef } from "react";
 
+import { useLanguage } from "@/lib/localization/language-provider";
+import { lettered } from "@/lib/localization/lettering";
 import type { RunLoop, RunView } from "@/lib/run-loop";
 import { useRunSelect } from "@/lib/use-run-select";
 
@@ -15,6 +17,10 @@ const MotorbikeWarning = ({
   loop: RunLoop;
   lane: (typeof MARKET.motorbikeLanes)[number];
 }) => {
+  const {
+    text: { market },
+  } = useLanguage();
+
   const incoming = useRunSelect(
     loop,
     ({ stage, run }) =>
@@ -39,7 +45,7 @@ const MotorbikeWarning = ({
             />
           </span>
           <span className="sr-only">
-            {`Motorbike approaching from the ${fromLeft ? "left" : "right"}`}
+            {fromLeft ? market.motorbikeFromLeft : market.motorbikeFromRight}
           </span>
         </Tag>
       )}
@@ -54,6 +60,10 @@ const soiDog = ({ run }: RunView) =>
   );
 
 const SoiDogTimer = ({ loop }: { loop: RunLoop }) => {
+  const {
+    text: { market },
+  } = useLanguage();
+
   const anchor = useRef<HTMLOutputElement>(null);
 
   const seconds = useRunSelect(loop, (view) => {
@@ -91,10 +101,12 @@ const SoiDogTimer = ({ loop }: { loop: RunLoop }) => {
     >
       {seconds !== null && (
         <>
-          <span className="sr-only">Soi Dog chases in </span>
-          <Tag tone="tomato" tilt={0}>
-            {`${seconds}s`}
-          </Tag>
+          <span className="sr-only">{market.dogCountdown(seconds)}</span>
+          <span aria-hidden="true">
+            <Tag tone="tomato" tilt={0}>
+              {lettered(market.seconds(seconds))}
+            </Tag>
+          </span>
         </>
       )}
     </output>

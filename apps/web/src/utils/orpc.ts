@@ -14,6 +14,8 @@ import { getRequest } from "@tanstack/react-start/server";
 import { toast } from "sonner";
 
 import { createContext } from "../context";
+import { isLanguage } from "../lib/localization/language";
+import { messages } from "../lib/localization/messages";
 
 const MAX_QUERY_RETRIES = 2;
 
@@ -34,16 +36,18 @@ const shouldRetryQuery = (failureCount: number, error: Error) => {
 export const createQueryClient = () =>
   new QueryClient({
     queryCache: new QueryCache({
-      onError: (error, query) => {
+      onError: (_error, query) => {
         // Initial load errors belong to the component (error state or boundary).
         // Toast only when a background refetch fails and stale data is still shown.
-        if (query.state.data === undefined) {
+        if (environmentManager.isServer() || query.state.data === undefined) {
           return;
         }
 
-        toast.error(`Error: ${error.message}`, {
+        const language = document.documentElement.lang;
+        const text = messages[isLanguage(language) ? language : "en"];
+        toast.error(text.rankings.retry, {
           action: {
-            label: "retry",
+            label: text.retry,
             onClick: () => {
               query.invalidate();
             },

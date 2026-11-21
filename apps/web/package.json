@@ -7,12 +7,14 @@
     "serve": "vp preview",
     "check-types": "tsc -b ../../packages/api && vp build && tsc --noEmit",
     "dev:bare": "vp dev",
+    "test:e2e": "playwright test",
     "env:generate": "varlock codegen"
   },
   "dependencies": {
     "@eddie-at-bangmod/api": "workspace:*",
     "@eddie-at-bangmod/db": "workspace:*",
     "@eddie-at-bangmod/game": "workspace:*",
+    "@fontsource/ibm-plex-sans-thai": "^5.3.0",
     "@libsql/client": "catalog:",
     "@orpc/client": "catalog:",
     "@orpc/openapi": "catalog:",
@@ -46,6 +48,7 @@
   "devDependencies": {
     "@eddie-at-bangmod/config": "workspace:*",
     "@eddie-at-bangmod/infra": "workspace:*",
+    "@playwright/test": "^1.65.1",
     "@tanstack/react-query-devtools": "^5.107.1",
     "@tanstack/react-router-devtools": "^1.167.3",
     "@types/react": "catalog:",

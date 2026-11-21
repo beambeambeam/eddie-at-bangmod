@@ -121,6 +121,7 @@ eddie-at-bangmod/
 - `bun run db:generate`: Generate database client/types
 - `bun run check`: Run Vite+ format/lint checks and workspace TypeScript checks
 - `bun run lint`: Run Vite+ lint checks
+- From `apps/web`, run `bun x playwright install chromium` then `bun run test:e2e` against the development server started with `bun run dev` at the repository root.
 - `bun run format`: Run Vite+ formatting
 - `bun run staged`: Run Vite+ checks against staged files
 - `bun run hooks:setup`: Install Vite+ native Git hooks with `vp config`

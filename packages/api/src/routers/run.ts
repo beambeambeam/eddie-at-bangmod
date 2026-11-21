@@ -4,7 +4,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { publicProcedure } from "../index";
-import { nicknameSchema } from "../nickname";
+import { nicknameReasonSchema, validateNickname } from "../nickname";
 import { entryOf, rankForScore } from "../ranking";
 
 /** A Run lasts this long, so no real Run can post sooner. */
@@ -58,6 +58,7 @@ export const runRouter = {
       INVALID_NICKNAME: {
         status: 400,
         message: "This Nickname breaks the rules.",
+        data: z.object({ reason: nicknameReasonSchema }),
       },
     })
     .input(
@@ -93,11 +94,11 @@ export const runRouter = {
         throw errors.SCORE_OVER_CAP();
       }
 
-      const nickname = nicknameSchema.safeParse(input.nickname);
+      const nickname = validateNickname(input.nickname);
 
       if (!nickname.success) {
         throw errors.INVALID_NICKNAME({
-          message: nickname.error.issues[0]?.message,
+          data: { reason: nickname.reason },
         });
       }
 
@@ -118,7 +119,7 @@ export const runRouter = {
         .insert(entry)
         .values({
           deviceId: input.deviceId,
-          nickname: nickname.data,
+          nickname: nickname.nickname,
           bestScore: input.score,
           bestScoreAt: now,
           updatedAt: now,
@@ -126,7 +127,7 @@ export const runRouter = {
         .onConflictDoUpdate({
           target: entry.deviceId,
           set: {
-            nickname: nickname.data,
+            nickname: nickname.nickname,
             updatedAt: now,
             bestScore: sql`case when ${beatsBest} then excluded.${sql.identifier("bestScore")} else ${entry.bestScore} end`,
             bestScoreAt: sql`case when ${beatsBest} then excluded.${sql.identifier("bestScoreAt")} else ${entry.bestScoreAt} end`,

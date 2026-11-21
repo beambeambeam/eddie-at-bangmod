@@ -13,20 +13,14 @@ export const AWNING_OFFSET = -0.42;
 /** How far the awning reaches from back to front. */
 export const AWNING_DEPTH = 0.6;
 
-interface StallLook {
-  /** The Stall sign text, shown by the Plop overlay. */
-  label: string;
-  /** Plop spot color for the sign and the awning. */
-  tone: Exclude<TagTone, "ink">;
-}
-
-export const STALL_LOOKS: Record<Item, StallLook> = {
-  basil: { label: "Basil", tone: "mint" },
-  pork: { label: "Pork", tone: "bubblegum" },
-  egg: { label: "Egg", tone: "mustard" },
-  rice: { label: "Rice", tone: "periwinkle" },
-  chili: { label: "Chili", tone: "tomato" },
-  garlic: { label: "Garlic", tone: "periwinkle" },
-  "fish-sauce": { label: "Fish Sauce", tone: "mustard" },
-  lime: { label: "Lime", tone: "mint" },
+/** Plop spot color for the sign and the awning. */
+export const STALL_TONES: Record<Item, Exclude<TagTone, "ink">> = {
+  basil: "mint",
+  pork: "bubblegum",
+  egg: "mustard",
+  rice: "periwinkle",
+  chili: "tomato",
+  garlic: "periwinkle",
+  "fish-sauce": "mustard",
+  lime: "mint",
 };
