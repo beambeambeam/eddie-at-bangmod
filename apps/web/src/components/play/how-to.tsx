@@ -5,7 +5,7 @@ const CARDS = [
   {
     title: "Move",
     tone: "mustard",
-    text: "Put a thumb down anywhere and drag to steer Eddie. On a keyboard, use WASD or the arrow keys.",
+    text: "Drag anywhere to steer Eddie, or use WASD or the arrow keys. To Sprint, push the joystick to its edge or hold Shift while moving.",
   },
   {
     title: "Grab the list",

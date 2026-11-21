@@ -6,11 +6,12 @@ export type SoundName =
   | "list-clear"
   | "honk"
   | "bark"
+  | "winded"
   | "countdown-tick"
   | "go"
   | "end-whistle";
 
-/** The two vibrations: a short tap on a grabbed Item, a firm buzz on a hit. */
+/** A short tap or a firm buzz. */
 export type HapticName = "grab" | "hit";
 
 export type BurstName = "list-clear";
@@ -45,6 +46,10 @@ export const cuesFor = (event: LoopEvent): readonly Cue[] => {
 
     case "countdown-tick": {
       return [sound("countdown-tick")];
+    }
+
+    case "winded": {
+      return [sound("winded"), haptic("grab")];
     }
 
     case "run-started": {

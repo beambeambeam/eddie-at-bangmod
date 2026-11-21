@@ -21,6 +21,7 @@ const SOUNDS: Record<SoundName, SoundSpec> = {
   "list-clear": { asset: successChimeSound, volume: 0.9, rate: 1 },
   honk: { asset: errorBuzzSound, volume: 0.9, rate: 0.6 },
   bark: { asset: errorBuzzSound, volume: 0.9, rate: 1.5 },
+  winded: { asset: switchOffSound, volume: 0.7, rate: 1.3 },
   "countdown-tick": { asset: click8bitSound, volume: 0.8, rate: 1 },
   go: { asset: switchOnSound, volume: 0.8, rate: 1 },
   "end-whistle": { asset: switchOffSound, volume: 0.9, rate: 1 },
