@@ -6,6 +6,7 @@ import {
   PerformanceMonitor,
 } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import type { GLProps } from "@react-three/fiber";
 import {
   Bloom,
   EffectComposer,
@@ -15,14 +16,22 @@ import {
   Vignette,
 } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Component,
+  memo,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
-import { MathUtils, Mesh } from "three";
+import { MathUtils, Mesh, WebGLRenderer } from "three";
 import type { Group } from "three";
 
 import type { RunLoop } from "@/lib/run-loop";
 import { useRunSelect } from "@/lib/use-run-select";
 
+import { FlatMarket } from "./flat-market";
 import { createMarketCamera } from "./market-camera";
 import { EddieModel } from "./models/eddie-model";
 import type { Gait } from "./models/eddie-model";
@@ -36,6 +45,7 @@ import { MarketGround } from "./models/market-ground";
 import { StallModel } from "./models/stall-model";
 import { useReducedMotion } from "./motion";
 import { STALL_LOOKS } from "./stall-looks";
+import { StallSigns } from "./stall-signs";
 
 /** The most device pixels per CSS pixel the canvas ever draws. */
 const MAX_DPR = 2;
@@ -369,6 +379,61 @@ const camera = createMarketCamera();
 
 const isTouch = () => window.matchMedia("(pointer: coarse)").matches;
 
+const WEBGL_UNAVAILABLE = new Error("WebGL 2 is unavailable.");
+
+const createRenderer: GLProps = ({ canvas }) => {
+  if (!(canvas instanceof HTMLCanvasElement)) {
+    throw new TypeError("The Market requires an HTML canvas.");
+  }
+
+  // A driver can reject the preferred configuration while supporting WebGL 2
+  // with default power and no multisampling. Reuse the context on this canvas.
+  const context =
+    canvas.getContext("webgl2", {
+      alpha: true,
+      antialias: true,
+      powerPreference: "high-performance",
+    }) ?? canvas.getContext("webgl2");
+
+  if (!context) {
+    throw WEBGL_UNAVAILABLE;
+  }
+
+  return new WebGLRenderer({
+    antialias: context.getContextAttributes()?.antialias,
+    canvas,
+    context,
+  });
+};
+
+interface MarketRendererBoundaryProps {
+  children: ReactNode;
+  fallback: ReactNode;
+}
+
+// Canvas forwards renderer initialization errors to the nearest React boundary.
+class MarketRendererBoundary extends Component<
+  MarketRendererBoundaryProps,
+  { unavailable: boolean }
+> {
+  constructor(props: MarketRendererBoundaryProps) {
+    super(props);
+    this.state = { unavailable: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    if (error !== WEBGL_UNAVAILABLE) {
+      throw error;
+    }
+
+    return { unavailable: true };
+  }
+
+  render(): ReactNode {
+    return this.state.unavailable ? this.props.fallback : this.props.children;
+  }
+}
+
 /**
  * The Market as a lit 3D diorama under the fixed camera. It draws the
  * snapshot only: no rules, and no text (every label is Plop UI over the
@@ -409,7 +474,7 @@ const MarketSceneView = ({
       camera={camera}
       dpr={[1, dprCap]}
       shadows="percentage"
-      gl={{ antialias: true, powerPreference: "high-performance" }}
+      gl={createRenderer}
     >
       <PerformanceMonitor onChange={handleChange} onDecline={handleDecline} />
       <Lighting rich={rich} />
@@ -440,4 +505,14 @@ const MarketSceneView = ({
   );
 };
 
-export const MarketScene = memo(MarketSceneView);
+const MarketSceneWithFallback = (props: {
+  loop: RunLoop;
+  onReady: () => void;
+}) => (
+  <MarketRendererBoundary fallback={<FlatMarket {...props} />}>
+    <MarketSceneView {...props} />
+    <StallSigns />
+  </MarketRendererBoundary>
+);
+
+export const MarketScene = memo(MarketSceneWithFallback);

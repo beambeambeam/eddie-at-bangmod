@@ -27,7 +27,6 @@ import {
   ShoppingListCard,
 } from "@/components/play/run-hud";
 import { RunResults } from "@/components/play/run-results";
-import { StallSigns } from "@/components/play/stall-signs";
 import { SettingsMenu } from "@/components/settings-menu";
 import { getDevice, markHowToSeen, subscribeDevice } from "@/lib/device";
 import { useRunFeedback } from "@/lib/feedback/use-run-feedback";
@@ -70,8 +69,8 @@ const PlayPage = () => {
   // reads its own values from the loop.
   const stage = useRunSelect(loop, (view) => view.stage);
 
-  // The Countdown waits until the Market is drawn and its shaders are
-  // compiled, so no frame stalls once time runs. It stays ready across Runs.
+  // The Countdown waits until the Market is ready to draw. It stays ready
+  // across Runs.
   const [marketReady, setMarketReady] = useState(false);
 
   const handleMarketReady = useCallback(() => {
@@ -196,7 +195,6 @@ const PlayPage = () => {
                   <MarketScene loop={loop} onReady={handleMarketReady} />
                 </Suspense>
               </ClientOnly>
-              <StallSigns />
               {marketReady ? (
                 <>
                   <RunCalls loop={loop} />
