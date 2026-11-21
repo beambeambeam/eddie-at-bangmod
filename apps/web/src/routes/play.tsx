@@ -1,4 +1,10 @@
-import { IconButton, InfoIcon, Loader } from "@plop-ui/react";
+import {
+  ButtonLink,
+  Callout,
+  IconButton,
+  InfoIcon,
+  Loader,
+} from "@plop-ui/react";
 import { useMutation } from "@tanstack/react-query";
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import {
@@ -28,6 +34,7 @@ import {
 } from "@/components/play/run-hud";
 import { RunResults } from "@/components/play/run-results";
 import { StallSigns } from "@/components/play/stall-signs";
+import { RouterLink } from "@/components/router-link";
 import { SettingsMenu } from "@/components/settings-menu";
 import { getDevice, markHowToSeen, subscribeDevice } from "@/lib/device";
 import { useRunFeedback } from "@/lib/feedback/use-run-feedback";
@@ -60,6 +67,27 @@ const subscribeNever = () => () => {
 
 const newSeed = () => Math.floor(Math.random() * 2 ** 32);
 
+const UnsupportedBrowser = () => (
+  <main className="grid min-h-svh place-items-center p-6">
+    <h1 className="sr-only">Market Run</h1>
+    <Callout
+      action={
+        <ButtonLink as={RouterLink} href="/" size="sm">
+          Back to home
+        </ButtonLink>
+      }
+      className="w-full max-w-md"
+      headingLevel={2}
+      role="alert"
+      title="WebGL 2 is unavailable"
+      tone="warn"
+    >
+      Market Run needs WebGL 2. Try enabling hardware acceleration in your
+      browser settings, or open the game in another browser.
+    </Callout>
+  </main>
+);
+
 const PlayPage = () => {
   const input = useMemo(() => createMoveInput(), []);
   // Each "Play again" starts a fresh Run with a new seed.
@@ -72,10 +100,18 @@ const PlayPage = () => {
 
   // The Countdown waits until the Market is drawn and its shaders are
   // compiled, so no frame stalls once time runs. It stays ready across Runs.
-  const [marketReady, setMarketReady] = useState(false);
+  const [marketStatus, setMarketStatus] = useState<
+    "loading" | "ready" | "unavailable"
+  >("loading");
+
+  const marketReady = marketStatus === "ready";
 
   const handleMarketReady = useCallback(() => {
-    setMarketReady(true);
+    setMarketStatus("ready");
+  }, []);
+
+  const handleMarketUnavailable = useCallback(() => {
+    setMarketStatus("unavailable");
   }, []);
 
   // Each Run asks for its Run Ticket as its countdown starts.
@@ -92,9 +128,8 @@ const PlayPage = () => {
   const listRef = useRef<HTMLDivElement>(null);
   useRunFeedback(loop, listRef);
 
-  // The how-to shows before a Device's first Run, and "?" opens it again.
-  // The server cannot know either, so until the page is hydrated the Run
-  // is held and nothing shows.
+  // Wait until hydration to show the seeded Shopping List and the Device's
+  // first-run how-to. Both depend on client state.
   const hydrated = useSyncExternalStore(
     subscribeNever,
     () => true,
@@ -108,13 +143,15 @@ const PlayPage = () => {
   );
 
   const [reopened, setReopened] = useState(false);
-  const howToOpen = hydrated && (!seenHowTo || reopened);
   const phonePortrait = usePhonePortrait();
+
+  const howToOpen =
+    hydrated && marketReady && !phonePortrait && (!seenHowTo || reopened);
 
   // While the Run is live, every touch steers Eddie. It stays locked behind
   // the rotate notice, so a stray drag cannot pull-to-refresh the Run away.
   const touchLocked =
-    (stage === "countdown" || stage === "running") && !howToOpen;
+    marketReady && (stage === "countdown" || stage === "running") && !howToOpen;
 
   const handleCloseHowTo = () => {
     markHowToSeen();
@@ -128,7 +165,10 @@ const PlayPage = () => {
     setSeed(newSeed());
   };
 
-  useEffect(() => input.listen(window), [input]);
+  useEffect(
+    () => (marketReady ? input.listen(window) : undefined),
+    [input, marketReady]
+  );
   // No time passes while the Market loads, or behind the how-to Sheet or
   // the rotate notice.
   useEffect(() => {
@@ -139,10 +179,16 @@ const PlayPage = () => {
     [touchLocked]
   );
   useEffect(() => {
-    requestTicket({ deviceId: getDevice().id });
+    if (marketReady) {
+      requestTicket({ deviceId: getDevice().id });
+    }
 
-    return loop.start();
-  }, [loop, requestTicket]);
+    return marketReady ? loop.start() : undefined;
+  }, [loop, marketReady, requestTicket]);
+
+  if (marketStatus === "unavailable") {
+    return <UnsupportedBrowser />;
+  }
 
   return (
     // The page fills the dynamic viewport, so the address bar showing or
@@ -160,14 +206,15 @@ const PlayPage = () => {
     >
       <h1 className="sr-only">Market Run</h1>
       {phonePortrait && (
-        <div className="flex size-full items-center justify-center p-4">
+        <div className="absolute inset-0 flex items-center justify-center p-4">
           <RotateNotice />
         </div>
       )}
-      {/* Hidden, not removed, while the phone is upright: the Run waits. */}
+      {/* Keep the canvas measurable while upright so it can check WebGL. */}
       <div
         className="@container-size relative size-full"
-        hidden={phonePortrait}
+        inert={phonePortrait}
+        style={{ visibility: phonePortrait ? "hidden" : undefined }}
       >
         {/* A thumb anywhere on the screen steers, rails included. */}
         <FloatingJoystick onMove={handleJoystick} />
@@ -178,7 +225,7 @@ const PlayPage = () => {
             aria-label="Shopping List"
             className="order-3 mx-auto flex w-full max-w-xl items-center justify-center landscape:order-1 landscape:max-w-none"
           >
-            {stage !== "finished" && (
+            {hydrated && stage !== "finished" && (
               <ShoppingListCard loop={loop} listRef={listRef} />
             )}
           </aside>
@@ -193,7 +240,11 @@ const PlayPage = () => {
             >
               <ClientOnly>
                 <Suspense>
-                  <MarketScene loop={loop} onReady={handleMarketReady} />
+                  <MarketScene
+                    loop={loop}
+                    onReady={handleMarketReady}
+                    onUnavailable={handleMarketUnavailable}
+                  />
                 </Suspense>
               </ClientOnly>
               <StallSigns />
