@@ -19,7 +19,7 @@ const local = (event: PointerEvent<HTMLDivElement>) => {
 };
 
 /** The knob's offset: the drag, held inside the reach. */
-const knobOffset = ({ drag }: Stick, reach: number) => {
+const knobOffset = ({ drag, reach }: Stick) => {
   const length = Math.hypot(drag.x, drag.y);
   const scale = length > reach ? reach / length : 1;
 
@@ -38,19 +38,18 @@ export const FloatingJoystick = ({
   onMove: (move: MoveInput | null) => void;
 }) => {
   const [stick, setStick] = useState<Stick | null>(null);
-  const [reach, setReach] = useState(stickReach(0));
   // Pointer events can arrive faster than React renders, so the latest
   // stick lives in a ref too: a second finger always sees the first one.
   const current = useRef<Stick | null>(null);
 
-  const update = (next: Stick | null, nextReach: number) => {
+  const update = (next: Stick | null) => {
     if (next === current.current) {
       return;
     }
 
     current.current = next;
     setStick(next);
-    onMove(stickMove(next, nextReach));
+    onMove(stickMove(next));
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -61,23 +60,22 @@ export const FloatingJoystick = ({
     event.currentTarget.setPointerCapture(event.pointerId);
 
     const { width, height } = event.currentTarget.getBoundingClientRect();
-    const nextReach = stickReach(Math.min(width, height));
+    const reach = stickReach(Math.min(width, height));
 
-    setReach(nextReach);
-    update(pressStick(null, event.pointerId, local(event)), nextReach);
+    update(pressStick(null, event.pointerId, local(event), reach));
   };
 
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (current.current) {
-      update(dragStick(current.current, event.pointerId, local(event)), reach);
+      update(dragStick(current.current, event.pointerId, local(event)));
     }
   };
 
   const onPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
-    update(releaseStick(current.current, event.pointerId), reach);
+    update(releaseStick(current.current, event.pointerId));
   };
 
-  const knob = stick ? knobOffset(stick, reach) : null;
+  const knob = stick ? knobOffset(stick) : null;
 
   return (
     <div
@@ -95,8 +93,8 @@ export const FloatingJoystick = ({
           style={{
             left: stick.origin.x,
             top: stick.origin.y,
-            width: reach * 2,
-            height: reach * 2,
+            width: stick.reach * 2,
+            height: stick.reach * 2,
             border: "var(--plop-stroke) dashed var(--plop-ink)",
             borderRadius: "var(--plop-radius-blob)",
             background:
@@ -106,8 +104,8 @@ export const FloatingJoystick = ({
           <div
             className="absolute top-1/2 left-1/2"
             style={{
-              width: reach,
-              height: reach,
+              width: stick.reach,
+              height: stick.reach,
               transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))`,
               border: "var(--plop-stroke) solid var(--plop-ink)",
               borderRadius: "var(--plop-radius-blob)",

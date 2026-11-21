@@ -1,17 +1,17 @@
 import { MARKET } from "./market";
 import type { Rect } from "./market";
 import {
-  EDDIE_SPEED,
   EDDIE_START,
   ITEM_POINTS,
   MAX_COMBO,
   RUN_TICKS,
   SHOPPING_LIST_POINTS,
   SHOPPING_LIST_SIZE,
+  SPRINT_SPEED,
   TICKS_PER_SECOND,
 } from "./rules";
 
-const STEP = EDDIE_SPEED / TICKS_PER_SECOND;
+const STEP = SPRINT_SPEED / TICKS_PER_SECOND;
 
 const gapBetween = (a: Rect, b: Rect) =>
   Math.hypot(
@@ -41,9 +41,8 @@ const point = {
  * different Stalls: Items on a list are distinct, and a new list never asks
  * for the Item that cleared the last one.
  *
- * Hazards are left out on purpose: a Crowd only slows Eddie and a Stun only
- * stops him. Nothing pushes him or adds points, so they can only lower the
- * best Score.
+ * Eddie Sprints the whole time, ignoring Stamina. Hazards can only slow or
+ * stop him, so they are left out too.
  */
 export const maxScore = () => {
   const firstTick = ticksFor(

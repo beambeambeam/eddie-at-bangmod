@@ -1,4 +1,4 @@
-import type { MoveInput } from "@eddie-at-bangmod/game";
+import type { MoveInput, Vec2 } from "@eddie-at-bangmod/game";
 
 const KEY_DIRECTIONS = {
   ArrowUp: { x: 0, y: -1 },
@@ -9,12 +9,17 @@ const KEY_DIRECTIONS = {
   KeyA: { x: -1, y: 0 },
   ArrowRight: { x: 1, y: 0 },
   KeyD: { x: 1, y: 0 },
-} satisfies Record<string, MoveInput>;
+} satisfies Record<string, Vec2>;
 
 type DirectionKey = keyof typeof KEY_DIRECTIONS;
 
+type SprintKey = "ShiftLeft" | "ShiftRight";
+
 const isDirectionKey = (code: string): code is DirectionKey =>
   Object.hasOwn(KEY_DIRECTIONS, code);
+
+const isSprintKey = (code: string): code is SprintKey =>
+  code === "ShiftLeft" || code === "ShiftRight";
 
 const TEXT_TAGS = new Set<unknown>(["INPUT", "TEXTAREA", "SELECT"]);
 
@@ -36,7 +41,7 @@ const isShortcut = (event: KeyboardEvent) =>
   event.metaKey || event.ctrlKey || event.altKey;
 
 /**
- * Merges WASD/arrow keys and the floating joystick into one movement input.
+ * Merges keyboard and floating joystick controls.
  * A held joystick wins over the keys. Keys typed into a text field stay
  * there: they neither move Eddie nor lose their default.
  */
@@ -50,22 +55,29 @@ export interface MoveInputSource {
 }
 
 export const createMoveInput = (): MoveInputSource => {
-  const held = new Set<DirectionKey>();
+  const held = new Set<DirectionKey | SprintKey>();
   let joystick: MoveInput | null = null;
+  let shortcutHeld = false;
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (
-      isDirectionKey(event.code) &&
-      !isShortcut(event) &&
-      !isTyping(event.target)
-    ) {
+    shortcutHeld = isShortcut(event);
+
+    if (shortcutHeld || isTyping(event.target)) {
+      return;
+    }
+
+    if (isSprintKey(event.code)) {
+      held.add(event.code);
+    } else if (isDirectionKey(event.code)) {
       event.preventDefault();
       held.add(event.code);
     }
   };
 
   const onKeyUp = (event: KeyboardEvent) => {
-    if (isDirectionKey(event.code)) {
+    shortcutHeld = isShortcut(event);
+
+    if (isDirectionKey(event.code) || isSprintKey(event.code)) {
       held.delete(event.code);
     }
 
@@ -78,6 +90,7 @@ export const createMoveInput = (): MoveInputSource => {
 
   const onBlur = () => {
     held.clear();
+    shortcutHeld = false;
   };
 
   return {
@@ -90,11 +103,19 @@ export const createMoveInput = (): MoveInputSource => {
       let y = 0;
 
       for (const code of held) {
-        x += KEY_DIRECTIONS[code].x;
-        y += KEY_DIRECTIONS[code].y;
+        if (isDirectionKey(code)) {
+          x += KEY_DIRECTIONS[code].x;
+          y += KEY_DIRECTIONS[code].y;
+        }
       }
 
-      return { x, y };
+      return {
+        move: { x, y },
+        sprint:
+          (x !== 0 || y !== 0) &&
+          !shortcutHeld &&
+          (held.has("ShiftLeft") || held.has("ShiftRight")),
+      };
     },
     setJoystick(move) {
       joystick = move;
@@ -108,7 +129,7 @@ export const createMoveInput = (): MoveInputSource => {
         target.removeEventListener("keydown", onKeyDown);
         target.removeEventListener("keyup", onKeyUp);
         target.removeEventListener("blur", onBlur);
-        held.clear();
+        onBlur();
       };
     },
   };

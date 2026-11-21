@@ -12,30 +12,50 @@ export interface Stick {
   origin: Point;
   /** How far the finger has dragged from the origin. */
   drag: Point;
+  /** How far the knob can travel, in CSS pixels. */
+  reach: number;
+  sprint: boolean;
 }
 
 /** Drags shorter than this share of the reach count as no input. */
 const DEAD_ZONE = 0.15;
+const SPRINT_START = 0.85;
+const SPRINT_HOLD = 0.8;
 
 /** A finger goes down. */
 export const pressStick = (
   stick: Stick | null,
   pointerId: number,
-  point: Point
-): Stick => stick ?? { pointerId, origin: point, drag: { x: 0, y: 0 } };
+  point: Point,
+  reach: number
+): Stick =>
+  stick ?? {
+    pointerId,
+    origin: point,
+    drag: { x: 0, y: 0 },
+    reach,
+    sprint: false,
+  };
 
 /** A finger moves. */
 export const dragStick = (
   stick: Stick,
   pointerId: number,
   point: Point
-): Stick =>
-  stick.pointerId === pointerId
-    ? {
-        ...stick,
-        drag: { x: point.x - stick.origin.x, y: point.y - stick.origin.y },
-      }
-    : stick;
+): Stick => {
+  if (stick.pointerId !== pointerId) {
+    return stick;
+  }
+
+  const drag = { x: point.x - stick.origin.x, y: point.y - stick.origin.y };
+  const deflection = Math.hypot(drag.x, drag.y) / stick.reach;
+
+  const sprint = stick.sprint
+    ? deflection >= SPRINT_HOLD
+    : deflection > SPRINT_START;
+
+  return { ...stick, drag, sprint };
+};
 
 /** A finger lifts or the browser cancels it. */
 export const releaseStick = (
@@ -43,25 +63,27 @@ export const releaseStick = (
   pointerId: number
 ): Stick | null => (stick?.pointerId === pointerId ? null : stick);
 
-/** The movement the stick asks for: full speed at `reach` CSS pixels. */
-export const stickMove = (
-  stick: Stick | null,
-  reach: number
-): MoveInput | null => {
+/** The stick's controls, with deflection preserved for walking. */
+export const stickMove = (stick: Stick | null): MoveInput | null => {
   if (!stick) {
     return null;
   }
 
-  const { x, y } = stick.drag;
+  const {
+    drag: { x, y },
+    reach,
+    sprint,
+  } = stick;
+
   const length = Math.hypot(x, y);
 
   if (length < reach * DEAD_ZONE) {
-    return { x: 0, y: 0 };
+    return { move: { x: 0, y: 0 }, sprint: false };
   }
 
   const scale = Math.min(length, reach) / length / reach;
 
-  return { x: x * scale, y: y * scale };
+  return { move: { x: x * scale, y: y * scale }, sprint };
 };
 
 /** The reach on a phone, in CSS pixels: a comfortable thumb drag. */

@@ -6,7 +6,7 @@ import type { LoopEvent } from "./run-loop";
 
 const COUNTDOWN_MS = 3000;
 const RUN_MS = 90_000;
-const STILL = { x: 0, y: 0 };
+const STILL = { move: { x: 0, y: 0 }, sprint: false };
 
 /** A stand-in page whose visibility the test flips. */
 const page = Object.assign(new EventTarget(), { hidden: false });

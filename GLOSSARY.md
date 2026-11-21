@@ -28,6 +28,12 @@ A short arcade minigame. Eddie, a KMUTT Bangmod student, rushes through a street
 
 **Stun**: A short moment after a Motorbike or Soi Dog hit when Eddie cannot move and the Combo resets; a Crowd only slows Eddie and never Stuns him. Right after a Stun, Eddie can walk but nothing can hit him for a moment. _Avoid_: Damage, hurt, knockback
 
+**Sprint**: Eddie moving faster than his walk while he moves, held by the player and paid for with Stamina. A Crowd slows a Sprint as much as a walk. _Avoid_: Run (clashes with Run), dash, boost
+
+**Stamina**: The meter that a Sprint drains and walking or standing still refills; a Run starts with it full. _Avoid_: Energy, fuel, mana
+
+**Winded**: The state after Stamina hits empty, when Eddie cannot Sprint until Stamina refills past a set share; he still walks normally. _Avoid_: Exhausted, tired, cooldown
+
 **Phase**: One of three 30-second thirds of a Run, each adding or speeding up Hazards. _Avoid_: Wave, stage, level
 
 **Score**: The points a Run earns: each Item scaled by the Combo, plus a flat bonus for each cleared Shopping List. _Avoid_: Points total, result
