@@ -1,6 +1,6 @@
 import { PHASE_TICKS, TICKS_PER_SECOND } from "@eddie-at-bangmod/game";
 import type { Phase, RunSnapshot } from "@eddie-at-bangmod/game";
-import { Sheet, Tag, WordSticker } from "@plop-ui/react";
+import { Progress, Sheet, Tag, WordSticker } from "@plop-ui/react";
 import type { WordStickerTone } from "@plop-ui/react";
 import type { Ref } from "react";
 
@@ -99,11 +99,33 @@ const Reading = ({
   </div>
 );
 
-/**
- * Time left, Score, Combo and Phase, big, in their own rail. Each reading
- * re-renders only when its value changes. Seconds round up, so the clock
- * reads 0:00 only at the end.
- */
+const StaminaReading = ({ loop }: { loop: RunLoop }) => {
+  const stamina = useRunSelect(loop, ({ run }) =>
+    Math.ceil(run.eddie.stamina * 100)
+  );
+
+  const winded = useRunSelect(loop, ({ run }) => run.eddie.winded);
+
+  return (
+    <div className="w-28 max-w-full landscape:w-full landscape:max-w-36">
+      <dt className="sr-only">Stamina</dt>
+      <dd className="m-0">
+        <Progress
+          label="Stamina"
+          value={stamina}
+          tone={winded ? "tomato" : "mint"}
+          solid
+          className="[&_[role=progressbar]]:h-4! [&_[role=progressbar]>span]:transition-none!"
+        />
+        <output className="mt-1 flex min-h-7 justify-center">
+          {winded && <Tag tone="tomato">Winded</Tag>}
+        </output>
+      </dd>
+    </div>
+  );
+};
+
+/** Time left, Score, Combo, Phase and Stamina in the scoreboard rail. */
 export const Scoreboard = ({ loop }: { loop: RunLoop }) => {
   const seconds = useRunSelect(loop, ({ run }) =>
     Math.ceil(run.ticksLeft / TICKS_PER_SECOND)
@@ -131,6 +153,7 @@ export const Scoreboard = ({ loop }: { loop: RunLoop }) => {
           </Tag>
         </dd>
       </div>
+      <StaminaReading loop={loop} />
     </dl>
   );
 };

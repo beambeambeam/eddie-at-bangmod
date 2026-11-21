@@ -14,7 +14,6 @@ import {
 import type {
   Hazard,
   HazardKind,
-  MoveInput,
   Run,
   RunEvent,
   RunSnapshot,
@@ -32,15 +31,18 @@ const walkTo = (run: Run, axis: keyof Vec2, goal: number) => {
   while (!run.snapshot().finished && Math.abs(gap()) > 1e-9) {
     const push = Math.max(-1, Math.min(1, gap() / STEP));
     events.push(
-      ...run.step(axis === "x" ? { x: push, y: 0 } : { x: 0, y: push })
+      ...run.step({
+        move: axis === "x" ? { x: push, y: 0 } : { x: 0, y: push },
+        sprint: false,
+      })
     );
   }
 
   return events;
 };
 
-const stepMany = (run: Run, input: MoveInput, ticks: number) =>
-  Array.from({ length: ticks }, () => run.step(input)).flat();
+const stepMany = (run: Run, move: Vec2, ticks: number) =>
+  Array.from({ length: ticks }, () => run.step({ move, sprint: false })).flat();
 
 describe("Phases", () => {
   test("Phases change at 30 s and 60 s of game time", () => {
@@ -49,12 +51,18 @@ describe("Phases", () => {
 
     const first = stepMany(run, STILL, 1799);
     expect(run.snapshot().phase).toBe(1);
-    expect(run.step(STILL)).toContainEqual({ type: "phase-changed", phase: 2 });
+    expect(run.step({ move: STILL, sprint: false })).toContainEqual({
+      type: "phase-changed",
+      phase: 2,
+    });
     expect(run.snapshot().phase).toBe(2);
 
     const second = stepMany(run, STILL, 1799);
     expect(run.snapshot().phase).toBe(2);
-    expect(run.step(STILL)).toContainEqual({ type: "phase-changed", phase: 3 });
+    expect(run.step({ move: STILL, sprint: false })).toContainEqual({
+      type: "phase-changed",
+      phase: 3,
+    });
     expect(run.snapshot().phase).toBe(3);
 
     const rest = stepMany(run, STILL, 1800);
@@ -77,7 +85,7 @@ const kindsSeen = (run: Run, ticks: number) => {
       kinds.add(hazard.kind);
     }
 
-    run.step(STILL);
+    run.step({ move: STILL, sprint: false });
   }
 
   return kinds;
@@ -103,7 +111,7 @@ describe("Hazards on the Phase schedule", () => {
 
       for (let tick = 0; tick < ticks; tick += 1) {
         const before = run.snapshot().hazards;
-        run.step(STILL);
+        run.step({ move: STILL, sprint: false });
 
         for (const hazard of run.snapshot().hazards) {
           const last = before.find(({ id }) => id === hazard.id);
@@ -125,7 +133,7 @@ describe("Hazards on the Phase schedule", () => {
 
     const phase2 = topSpeed(run, PHASE_TICKS - 1);
     // This tick enters Phase 3, so it counts for neither.
-    run.step(STILL);
+    run.step({ move: STILL, sprint: false });
     const phase3 = topSpeed(run, PHASE_TICKS);
 
     expect(phase2).toBeGreaterThan(0);
@@ -137,7 +145,7 @@ describe("Hazards on the Phase schedule", () => {
     stepMany(run, STILL, PHASE_TICKS);
 
     for (let tick = 0; tick < 2 * PHASE_TICKS; tick += 1) {
-      run.step(STILL);
+      run.step({ move: STILL, sprint: false });
 
       for (const hazard of run.snapshot().hazards) {
         if (hazard.kind === "motorbike") {
@@ -159,7 +167,7 @@ describe("Hazards on the Phase schedule", () => {
 
     const frames = Array.from({ length: 10 * TICKS_PER_SECOND }, () => {
       const frame = run.snapshot();
-      run.step(STILL);
+      run.step({ move: STILL, sprint: false });
 
       return frame;
     });
@@ -196,6 +204,16 @@ describe("Hazards on the Phase schedule", () => {
 });
 
 describe("Crowds", () => {
+  test("a Crowd halves Sprint speed while Eddie still spends Stamina", () => {
+    const run = createRun({ seed: 1 });
+    stepMany(run, STILL, 270);
+
+    run.step({ move: { x: 1, y: 0 }, sprint: true });
+
+    expect(run.snapshot().eddie.position.x).toBeCloseTo(0.045);
+    expect(run.snapshot().eddie.stamina).toBeCloseTo(179 / 180, 5);
+  });
+
   test("a Crowd slows Eddie to half speed but never stops or Stuns him", () => {
     const run = createRun({ seed: 1 });
     const steps: number[] = [];
@@ -205,7 +223,7 @@ describe("Crowds", () => {
     for (let tick = 0; tick < 10 * TICKS_PER_SECOND; tick += 1) {
       const from = run.snapshot().eddie.position;
       const push = Math.floor(tick / 10) % 2 === 0 ? 1 : -1;
-      events.push(...run.step({ x: push, y: 0 }));
+      events.push(...run.step({ move: { x: push, y: 0 }, sprint: false }));
       const to = run.snapshot().eddie.position;
       steps.push(Math.hypot(to.x - from.x, to.y - from.y));
       expect(run.snapshot().eddie.stunTicksLeft).toBe(0);
@@ -234,7 +252,7 @@ const AISLE_X = -4;
  * Phase 2 starts, then stands on the front lane until the first Motorbike
  * hits him, inside the Combo window.
  */
-const hitAfterTwoGrabs = () => {
+const hitAfterTwoGrabs = (sprint = false) => {
   const run = createRun({ seed: 2 });
   expect(run.snapshot().shoppingList.dish).toBe("nam-jim");
 
@@ -250,7 +268,12 @@ const hitAfterTwoGrabs = () => {
 
   while (!run.snapshot().finished && events.length === 0) {
     comboBefore = run.snapshot().combo;
-    events = run.step(STILL);
+
+    const move = sprint
+      ? { x: run.snapshot().tick % 2 === 0 ? 1 : -1, y: 0 }
+      : STILL;
+
+    events = run.step({ move, sprint });
   }
 
   expect(events).toEqual([{ type: "eddie-hit", hazard: "motorbike" }]);
@@ -259,6 +282,18 @@ const hitAfterTwoGrabs = () => {
 };
 
 describe("Motorbike hits", () => {
+  test("Stun blocks Sprint and lets partially drained Stamina refill", () => {
+    const { run } = hitAfterTwoGrabs(true);
+    const { position, stamina } = run.snapshot().eddie;
+    expect(stamina).toBeGreaterThan(0);
+    expect(stamina).toBeLessThan(1);
+
+    run.step({ move: { x: 0, y: -1 }, sprint: true });
+
+    expect(run.snapshot().eddie.position).toEqual(position);
+    expect(run.snapshot().eddie.stamina).toBeCloseTo(stamina + 1 / 300, 5);
+  });
+
   test("a Motorbike hit Stuns Eddie for 1.5 s: he cannot move, then walks again", () => {
     const { run } = hitAfterTwoGrabs();
     expect(STUN_TICKS).toBe(90);
@@ -270,7 +305,7 @@ describe("Motorbike hits", () => {
     expect(run.snapshot().eddie.stunTicksLeft).toBe(0);
     expect(stunned.filter((e) => e.type === "eddie-hit")).toEqual([]);
 
-    run.step({ x: 0, y: -1 });
+    run.step({ move: { x: 0, y: -1 }, sprint: false });
     expect(run.snapshot().eddie.position.y).toBeLessThan(hitAt.y);
   });
 
@@ -284,7 +319,7 @@ describe("Motorbike hits", () => {
       let lastHit: number | null = null;
 
       while (!run.snapshot().finished) {
-        const events = run.step(STILL);
+        const events = run.step({ move: STILL, sprint: false });
 
         if (events.some((event) => event.type === "eddie-hit")) {
           const { tick } = run.snapshot();
@@ -337,7 +372,7 @@ describe("The Soi Dog", () => {
     stepMany(run, STILL, chaseInTicks - 1);
     expect(soiDog(run)).toMatchObject({ chasing: false, chaseInTicks: 1 });
 
-    run.step(STILL);
+    run.step({ move: STILL, sprint: false });
     expect(soiDog(run)).toMatchObject({ chasing: true, chaseInTicks: null });
   });
 
@@ -358,7 +393,7 @@ describe("The Soi Dog", () => {
           ? { x: eddie.x - before.position.x, y: eddie.y - before.position.y }
           : STILL;
 
-      const events = run.step(away);
+      const events = run.step({ move: away, sprint: false });
       const after = soiDog(run);
 
       if (before?.chasing === true && after?.chasing === true) {
@@ -396,7 +431,7 @@ describe("The Soi Dog", () => {
 
       while (!run.snapshot().finished) {
         const chasing = soiDog(run)?.chasing;
-        const events = run.step(STILL);
+        const events = run.step({ move: STILL, sprint: false });
 
         if (
           events.some((e) => e.type === "eddie-hit" && e.hazard === "soi-dog")

@@ -7,6 +7,13 @@ export const RUN_TICKS = 90 * TICKS_PER_SECOND;
 /** Eddie's walking speed in Market units per second at full input. */
 export const EDDIE_SPEED = 3.6;
 
+/** Eddie's Sprint speed in Market units per second. */
+export const SPRINT_SPEED = EDDIE_SPEED * 1.5;
+
+export const STAMINA_DRAIN_TICKS = 3 * TICKS_PER_SECOND;
+export const STAMINA_REFILL_TICKS = 5 * TICKS_PER_SECOND;
+export const WINDED_UNLOCK = 0.3;
+
 /** Points for one Item at Combo ×1. The Combo multiplies them. */
 export const ITEM_POINTS = 100;
 

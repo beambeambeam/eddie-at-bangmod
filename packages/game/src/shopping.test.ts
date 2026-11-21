@@ -17,7 +17,9 @@ const STEP = EDDIE_SPEED / TICKS_PER_SECOND;
 const STILL = { x: 0, y: 0 };
 
 const stepStill = (run: Run, ticks: number) =>
-  Array.from({ length: ticks }, () => run.step(STILL)).flat();
+  Array.from({ length: ticks }, () =>
+    run.step({ move: STILL, sprint: false })
+  ).flat();
 
 const stallFor = (item: Item | undefined) => {
   const stall = MARKET.stalls.find((candidate) => candidate.item === item);
@@ -37,7 +39,10 @@ const walkTo = (run: Run, axis: keyof Vec2, goal: number) => {
   while (!run.snapshot().finished && Math.abs(gap()) > 1e-9) {
     const push = Math.max(-1, Math.min(1, gap() / STEP));
     events.push(
-      ...run.step(axis === "x" ? { x: push, y: 0 } : { x: 0, y: push })
+      ...run.step({
+        move: axis === "x" ? { x: push, y: 0 } : { x: 0, y: push },
+        sprint: false,
+      })
     );
   }
 
@@ -288,7 +293,9 @@ describe("The Run's end", () => {
     // Phase changes and Hazard hits happen on the way, but the Run goes on.
     expect(early).not.toContainEqual({ type: "run-ended" });
 
-    expect(run.step(STILL)).toEqual([{ type: "run-ended" }]);
+    expect(run.step({ move: STILL, sprint: false })).toEqual([
+      { type: "run-ended" },
+    ]);
     expect(run.snapshot().finished).toBe(true);
     expect(run.snapshot().ticksLeft).toBe(0);
     expect(run.snapshot().tick).toBe(RUN_TICKS);
@@ -299,7 +306,7 @@ describe("The Run's end", () => {
     stepStill(run, RUN_TICKS);
     const ended = run.snapshot();
 
-    expect(run.step({ x: 1, y: 0 })).toEqual([]);
+    expect(run.step({ move: { x: 1, y: 0 }, sprint: false })).toEqual([]);
     expect(run.snapshot()).toBe(ended);
   });
 
@@ -378,6 +385,12 @@ describe("A full Run", () => {
         maxScore()
       );
     }
+  });
+
+  test("the Score cap allows the pace of a player who Sprints all Run", () => {
+    // At 5.4 units/s, the nearest front is 13 ticks away and the shortest
+    // gap takes 18 ticks. That leaves time for 300 Items and 100 list clears.
+    expect(maxScore()).toBeGreaterThanOrEqual(119_700);
   });
 
   test("the same seed and route give the same Score", () => {

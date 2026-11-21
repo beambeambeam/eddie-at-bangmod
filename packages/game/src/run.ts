@@ -21,17 +21,24 @@ import {
   RUN_TICKS,
   SAFE_TICKS,
   SHOPPING_LIST_POINTS,
+  SPRINT_SPEED,
+  STAMINA_DRAIN_TICKS,
+  STAMINA_REFILL_TICKS,
   STUN_TICKS,
   TICKS_PER_SECOND,
+  WINDED_UNLOCK,
 } from "./rules";
 import { drawShoppingList } from "./shopping-list";
 import type { Dish, ShoppingList } from "./shopping-list";
 
 /**
- * The player's movement for one tick. `x` points right, `y` points down the
- * screen (toward the camera). Longer than 1 is scaled down to length 1.
+ * The player's controls for one tick. Movement points right on `x` and down
+ * the screen on `y`. Walking input longer than 1 is scaled down to length 1.
  */
-export type MoveInput = Vec2;
+export interface MoveInput {
+  readonly move: Vec2;
+  readonly sprint: boolean;
+}
 
 /** One of the three 30 s thirds of a Run. */
 export type Phase = 1 | 2 | 3;
@@ -56,6 +63,7 @@ export type RunEvent =
       readonly hazard: HitterKind;
     }
   | { readonly type: "phase-changed"; readonly phase: Phase }
+  | { readonly type: "winded" }
   | { readonly type: "run-ended" };
 
 export interface RunSnapshot {
@@ -71,6 +79,9 @@ export interface RunSnapshot {
     readonly position: Vec2;
     /** Unit vector of the last move Eddie tried, in the same axes as input. */
     readonly facing: Vec2;
+    /** The share of Stamina left, from 0 to 1. */
+    readonly stamina: number;
+    readonly winded: boolean;
     /** Ticks until Eddie can move again after a hit. 0 when he is free. */
     readonly stunTicksLeft: number;
     /** Ticks after a Stun until Hazards can hit Eddie again. 0 when they can. */
@@ -92,7 +103,7 @@ export interface RunSnapshot {
 
 export interface Run {
   /**
-   * Advances the Run by one tick (1/60 s) with the player's movement and
+   * Advances the Run by one tick (1/60 s) with the player's controls and
    * returns what happened in that tick. Does nothing once the Run is finished.
    */
   step: (input: MoveInput) => readonly RunEvent[];
@@ -158,16 +169,20 @@ const walkAxis = (from: Vec2, axis: "x" | "y", delta: number): Vec2 => {
 };
 
 /**
- * Walks one tick. Axes resolve one at a time, so Eddie slides along Stalls.
+ * Moves one tick. Axes resolve one at a time, so Eddie slides along Stalls.
  * A Crowd he overlaps slows him down.
  */
-const walk = (from: Vec2, move: Vec2, hazards: readonly Hazard[]): Vec2 => {
+const moveEddie = (
+  from: Vec2,
+  move: Vec2,
+  speed: number,
+  hazards: readonly Hazard[]
+): Vec2 => {
   const inCrowd = hazards.some(
     (hazard) => hazard.kind === "crowd" && touches(hazard, from)
   );
 
-  const step =
-    (EDDIE_SPEED / TICKS_PER_SECOND) * (inCrowd ? CROWD_SLOWDOWN : 1);
+  const step = (speed / TICKS_PER_SECOND) * (inCrowd ? CROWD_SLOWDOWN : 1);
 
   return walkAxis(walkAxis(from, "x", move.x * step), "y", move.y * step);
 };
@@ -185,12 +200,32 @@ const itemWithin = (list: ShoppingList, position: Vec2): Item | undefined =>
 
 interface RunState {
   snapshot: RunSnapshot;
+  staminaUnits: number;
   /** The tick of the last grab, which times the Combo. */
   lastGrabTick: number | null;
   readonly hazards: Hazards;
   /** Every chance roll in a Run draws from here, so a seed replays exactly. */
   readonly random: Random;
 }
+
+// Whole units make both rates exact, including the tick at 30%.
+const STAMINA_CAPACITY = STAMINA_DRAIN_TICKS * STAMINA_REFILL_TICKS;
+
+const updateStamina = (state: RunState, sprinting: boolean) => {
+  state.staminaUnits = clamp(
+    state.staminaUnits +
+      (sprinting ? -STAMINA_REFILL_TICKS : STAMINA_DRAIN_TICKS),
+    0,
+    STAMINA_CAPACITY
+  );
+
+  const stamina = state.staminaUnits / STAMINA_CAPACITY;
+
+  const winded =
+    stamina === 0 || (state.snapshot.eddie.winded && stamina <= WINDED_UNLOCK);
+
+  return { stamina, winded };
+};
 
 /** True while a grab at `tick` still grows the Combo. */
 const inComboWindow = (state: RunState, tick: number) =>
@@ -275,12 +310,27 @@ const advance = (state: RunState, input: MoveInput): RunEvent[] => {
   const stunned = eddie.stunTicksLeft > 0;
   const safe = stunned || eddie.safeTicksLeft > 0;
   // A Stunned Eddie ignores input: he neither walks nor turns.
-  const move = stunned ? { x: 0, y: 0 } : clampLength(input);
+  const move = stunned ? { x: 0, y: 0 } : clampLength(input.move);
+  const moving = move.x !== 0 || move.y !== 0;
+  const wantsSprint = input.sprint && moving && !eddie.winded;
+  const facing = faceToward(move, eddie.facing);
   const next = tick + 1;
 
   const phase = phaseAt(next);
-  // Eddie walks first, slowed by the Crowds where they stood last tick.
-  const position = walk(eddie.position, move, state.snapshot.hazards);
+
+  // Eddie moves first, slowed by the Crowds where they stood last tick.
+  const position = moveEddie(
+    eddie.position,
+    wantsSprint ? facing : move,
+    wantsSprint ? SPRINT_SPEED : EDDIE_SPEED,
+    state.snapshot.hazards
+  );
+
+  const sprinting =
+    wantsSprint &&
+    (position.x !== eddie.position.x || position.y !== eddie.position.y);
+
+  const { stamina, winded } = updateStamina(state, sprinting);
 
   const { hazards, hit, motorbikeWarnings } = moveHazards(
     state.hazards,
@@ -297,7 +347,9 @@ const advance = (state: RunState, input: MoveInput): RunEvent[] => {
     motorbikeWarnings,
     eddie: {
       position,
-      facing: faceToward(move, eddie.facing),
+      facing,
+      stamina,
+      winded,
       stunTicksLeft: Math.max(eddie.stunTicksLeft - 1, 0),
       // The safe time counts down only once the Stun is over.
       safeTicksLeft: stunned
@@ -309,6 +361,10 @@ const advance = (state: RunState, input: MoveInput): RunEvent[] => {
 
   const events: RunEvent[] =
     phase === state.snapshot.phase ? [] : [{ type: "phase-changed", phase }];
+
+  if (winded && !eddie.winded) {
+    events.push({ type: "winded" });
+  }
 
   const item = itemWithin(snapshot.shoppingList, snapshot.eddie.position);
 
@@ -347,6 +403,8 @@ export const createRun = ({ seed }: RunOptions): Run => {
       eddie: {
         position: EDDIE_START,
         facing: { x: 0, y: 1 },
+        stamina: 1,
+        winded: false,
         stunTicksLeft: 0,
         safeTicksLeft: 0,
       },
@@ -357,6 +415,7 @@ export const createRun = ({ seed }: RunOptions): Run => {
       itemsGrabbed: 0,
       shoppingListsCleared: 0,
     },
+    staminaUnits: STAMINA_CAPACITY,
     lastGrabTick: null,
     hazards: createHazards(),
     random,
