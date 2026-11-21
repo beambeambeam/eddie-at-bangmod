@@ -1,5 +1,5 @@
 import { AISLE_GRID, MARKET } from "./market";
-import type { Vec2 } from "./market";
+import type { MotorbikeLane, Vec2 } from "./market";
 import type { Random } from "./random";
 import {
   CROWD_RADIUS,
@@ -9,6 +9,7 @@ import {
   MOTORBIKE_GAP_TICKS,
   MOTORBIKE_RADIUS,
   MOTORBIKE_SPEED,
+  PHASE_TICKS,
   SOI_DOG_CHASE_SPEED,
   SOI_DOG_CHASE_TICKS,
   SOI_DOG_RADIUS,
@@ -37,6 +38,8 @@ export type Hazard =
       readonly kind: "soi-dog";
       /** True while it runs at Eddie. Only a chasing Soi Dog bites. */
       readonly chasing: boolean;
+      /** Ticks until the next chase, or null during a chase. */
+      readonly chaseInTicks: number | null;
     });
 
 /** The Hazards that Stun Eddie when they reach him. Crowds only slow him. */
@@ -290,7 +293,22 @@ const soiDogHazard = (dog: SoiDog): Hazard => ({
   facing: dog.facing,
   radius: SOI_DOG_RADIUS,
   chasing: dog.chasing,
+  chaseInTicks: dog.chasing ? null : dog.ticksLeft,
 });
+
+/** Lanes with a Motorbike due in the next second. */
+const motorbikeWarnings = (hazards: Hazards, tick: number) => {
+  // The first bikes can appear on the very first tick of Phase 2.
+  if (tick === PHASE_TICKS - 1) {
+    return MARKET.motorbikeLanes;
+  }
+
+  return MARKET.motorbikeLanes.filter((_, index) => {
+    const bike = hazards.motorbikes?.[index];
+
+    return bike?.x === null && bike.waitTicks <= TICKS_PER_SECOND;
+  });
+};
 
 export interface HazardTick {
   tick: number;
@@ -303,6 +321,7 @@ export interface HazardTick {
 
 export interface HazardStep {
   hazards: Hazard[];
+  motorbikeWarnings: readonly MotorbikeLane[];
   /** The Hazard that hit Eddie this tick, or null. */
   hit: HitterKind | null;
 }
@@ -363,7 +382,11 @@ export const moveHazards = (
     moved.push(soiDogHazard(dog));
   }
 
-  return { hazards: moved, hit };
+  return {
+    hazards: moved,
+    hit,
+    motorbikeWarnings: motorbikeWarnings(hazards, tick),
+  };
 };
 
 /** The Hazards at the start of a Run, before the first tick. */

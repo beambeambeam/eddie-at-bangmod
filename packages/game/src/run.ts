@@ -6,7 +6,7 @@ import {
 } from "./hazards";
 import type { Hazard, Hazards, HitterKind } from "./hazards";
 import { MARKET } from "./market";
-import type { Item, Rect, Vec2 } from "./market";
+import type { Item, MotorbikeLane, Rect, Vec2 } from "./market";
 import { createRandom } from "./random";
 import type { Random } from "./random";
 import {
@@ -78,6 +78,8 @@ export interface RunSnapshot {
   };
   /** Every Hazard in the Market now. Which ones depends on the Phase. */
   readonly hazards: readonly Hazard[];
+  /** Lanes with a Motorbike due in the next second. */
+  readonly motorbikeWarnings: readonly MotorbikeLane[];
   /** The Shopping List Eddie works on now. */
   readonly shoppingList: ShoppingList;
   readonly score: number;
@@ -280,7 +282,7 @@ const advance = (state: RunState, input: MoveInput): RunEvent[] => {
   // Eddie walks first, slowed by the Crowds where they stood last tick.
   const position = walk(eddie.position, move, state.snapshot.hazards);
 
-  const { hazards, hit } = moveHazards(
+  const { hazards, hit, motorbikeWarnings } = moveHazards(
     state.hazards,
     { tick: next, phase, eddie: position, canHit: !safe },
     state.random
@@ -292,6 +294,7 @@ const advance = (state: RunState, input: MoveInput): RunEvent[] => {
     ticksLeft: RUN_TICKS - next,
     phase,
     hazards,
+    motorbikeWarnings,
     eddie: {
       position,
       facing: faceToward(move, eddie.facing),
@@ -340,6 +343,7 @@ export const createRun = ({ seed }: RunOptions): Run => {
       finished: false,
       phase: 1,
       hazards: startingHazards(),
+      motorbikeWarnings: [],
       eddie: {
         position: EDDIE_START,
         facing: { x: 0, y: 1 },
