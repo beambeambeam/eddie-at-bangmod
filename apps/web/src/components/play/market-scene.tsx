@@ -43,7 +43,7 @@ import {
 import { MarketGround } from "./models/market-ground";
 import { StallModel } from "./models/stall-model";
 import { useReducedMotion } from "./motion";
-import { STALL_LOOKS } from "./stall-looks";
+import { STALL_TONES } from "./stall-looks";
 
 /** The most device pixels per CSS pixel the canvas ever draws. */
 const MAX_DPR = 2;
@@ -273,7 +273,7 @@ const Stalls = () => {
     () =>
       MARKET.stalls.map((stall) => ({
         stall,
-        tone: plopColor(STALL_LOOKS[stall.item].tone),
+        tone: plopColor(STALL_TONES[stall.item]),
       })),
     []
   );

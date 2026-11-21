@@ -1,14 +1,12 @@
 import { PHASE_TICKS, TICKS_PER_SECOND } from "@eddie-at-bangmod/game";
-import type { Phase, RunSnapshot } from "@eddie-at-bangmod/game";
 import { Progress, Sheet, Tag, WordSticker } from "@plop-ui/react";
 import type { WordStickerTone } from "@plop-ui/react";
 import type { Ref } from "react";
 
-import type { RunLoop, RunView } from "@/lib/run-loop";
+import { useLanguage } from "@/lib/localization/language-provider";
+import { hasThai, lettered } from "@/lib/localization/lettering";
+import type { RunLoop } from "@/lib/run-loop";
 import { useRunSelect } from "@/lib/use-run-select";
-
-import { DISH_LABELS } from "./dish-looks";
-import { STALL_LOOKS } from "./stall-looks";
 
 /** "1:05" from whole seconds left. */
 const clock = (seconds: number) =>
@@ -30,6 +28,7 @@ export const ShoppingListCard = ({
   /** The card, where the list-clear burst starts. */
   listRef: Ref<HTMLDivElement>;
 }) => {
+  const { text } = useLanguage();
   const list = useRunSelect(loop, ({ run }) => run.shoppingList);
 
   return (
@@ -40,11 +39,11 @@ export const ShoppingListCard = ({
         className="w-full p-[clamp(8px,6cqi,20px)]"
       >
         <h2
-          className="m-0 uppercase"
+          className="m-0 leading-tight uppercase"
           style={{ fontFamily: "var(--plop-font-letter)", fontSize: RAIL_TEXT }}
         >
-          <span className="sr-only">Shopping List: </span>
-          {DISH_LABELS[list.dish]}
+          <span className="sr-only">{text.shoppingList}: </span>
+          {text.dishes[list.dish]}
         </h2>
         <ul
           className="m-0 mt-2 flex list-none flex-col gap-2 p-0"
@@ -60,9 +59,9 @@ export const ShoppingListCard = ({
               }}
             >
               <span aria-hidden>{ticked ? "☑" : "☐"}</span>
-              {STALL_LOOKS[item].label}
+              {text.items[item]}
               <span className="text-[0.6em] uppercase opacity-80">
-                {ticked ? "got" : "need"}
+                {ticked ? text.market.got : text.market.need}
               </span>
             </li>
           ))}
@@ -100,6 +99,8 @@ const Reading = ({
 );
 
 const StaminaReading = ({ loop }: { loop: RunLoop }) => {
+  const { text } = useLanguage();
+
   const stamina = useRunSelect(loop, ({ run }) =>
     Math.ceil(run.eddie.stamina * 100)
   );
@@ -108,17 +109,17 @@ const StaminaReading = ({ loop }: { loop: RunLoop }) => {
 
   return (
     <div className="w-28 max-w-full landscape:w-full landscape:max-w-36">
-      <dt className="sr-only">Stamina</dt>
+      <dt className="sr-only">{text.market.stamina}</dt>
       <dd className="m-0">
         <Progress
-          label="Stamina"
+          label={text.market.stamina}
           value={stamina}
           tone={winded ? "tomato" : "mint"}
           solid
           className="[&_[role=progressbar]]:h-4! [&_[role=progressbar]>span]:transition-none!"
         />
         <output className="mt-1 flex min-h-7 justify-center">
-          {winded && <Tag tone="tomato">Winded</Tag>}
+          {winded && <Tag tone="tomato">{lettered(text.market.winded)}</Tag>}
         </output>
       </dd>
     </div>
@@ -127,6 +128,8 @@ const StaminaReading = ({ loop }: { loop: RunLoop }) => {
 
 /** Time left, Score, Combo, Phase and Stamina in the scoreboard rail. */
 export const Scoreboard = ({ loop }: { loop: RunLoop }) => {
+  const { text } = useLanguage();
+
   const seconds = useRunSelect(loop, ({ run }) =>
     Math.ceil(run.ticksLeft / TICKS_PER_SECOND)
   );
@@ -137,19 +140,29 @@ export const Scoreboard = ({ loop }: { loop: RunLoop }) => {
 
   return (
     <dl className="@container m-0 flex w-full flex-wrap items-center justify-around gap-[clamp(4px,4cqi,16px)] landscape:flex-col landscape:justify-center">
-      <Reading label="Time" value={clock(seconds)} tone="paper" tilt={-2} />
-      <Reading label="Score" value={String(score)} tone="mustard" tilt={1} />
       <Reading
-        label="Combo"
+        label={text.market.time}
+        value={clock(seconds)}
+        tone="paper"
+        tilt={-2}
+      />
+      <Reading
+        label={text.score}
+        value={String(score)}
+        tone="mustard"
+        tilt={1}
+      />
+      <Reading
+        label={text.market.combo}
         value={`×${combo}`}
         tone={combo > 1 ? "tomato" : "paper"}
         tilt={3}
       />
       <div>
-        <dt className="sr-only">Phase</dt>
+        <dt className="sr-only">{text.market.phase}</dt>
         <dd className="m-0">
           <Tag tone="mint" pattern="stripes" tilt={-1}>
-            {`Phase ${phase}`}
+            {lettered(text.market.phaseNumber(phase))}
           </Tag>
         </dd>
       </div>
@@ -158,48 +171,39 @@ export const Scoreboard = ({ loop }: { loop: RunLoop }) => {
   );
 };
 
-/** A big lettered call in the middle of the frame: 3, 2, 1, Go! */
-const Call = ({ children }: { children: string }) => (
-  <div className="absolute inset-0 flex items-center justify-center">
-    <WordSticker
-      tone="mustard"
-      tilt={-4}
-      style={{ fontSize: "min(24cqh, 12cqw)" }}
-    >
-      {children}
-    </WordSticker>
-  </div>
-);
+const RunCallSticker = ({
+  label,
+  tone,
+  tilt,
+  fontSize,
+}: {
+  label: string;
+  tone: "mustard" | "tomato";
+  tilt: number;
+  fontSize: string;
+}) => {
+  if (!hasThai(label)) {
+    return (
+      <WordSticker tone={tone} tilt={tilt} style={{ fontSize }}>
+        {label}
+      </WordSticker>
+    );
+  }
+
+  return (
+    <Tag tone={tone} tilt={tilt}>
+      <span style={{ fontSize: `min(${fontSize}, 7cqw)` }}>
+        {lettered(label)}
+      </span>
+    </Tag>
+  );
+};
 
 /** "Go!" stays up for the first half second of the Run. */
 const GO_TICKS = TICKS_PER_SECOND / 2;
 
-/** What each new Phase brings into the Market. */
-const PHASE_CALLS: Record<Exclude<Phase, 1>, string> = {
-  2: "Motorbikes!",
-  3: "Soi Dog!",
-};
-
 /** A Phase call stays up for the first 1.5 s of its Phase. */
 const PHASE_CALL_TICKS = 1.5 * TICKS_PER_SECOND;
-
-const phaseCall = ({ phase, tick }: RunSnapshot) =>
-  phase !== 1 && tick - (phase - 1) * PHASE_TICKS < PHASE_CALL_TICKS
-    ? PHASE_CALLS[phase]
-    : null;
-
-/** The big call over the Market now: the countdown, "Go!" or a Phase call. */
-const bigCall = ({ stage, countdown, run }: RunView) => {
-  if (stage === "countdown") {
-    return String(countdown);
-  }
-
-  if (stage !== "running") {
-    return null;
-  }
-
-  return run.tick < GO_TICKS ? "Go!" : phaseCall(run);
-};
 
 /**
  * The calls a player reads over the Market during a Run, as Plop UI over the
@@ -207,7 +211,31 @@ const bigCall = ({ stage, countdown, run }: RunView) => {
  * left, Score, Combo, Phase and the Shopping List sit in the rails beside it.
  */
 export const RunCalls = ({ loop }: { loop: RunLoop }) => {
-  const call = useRunSelect(loop, bigCall);
+  const {
+    text: { market },
+  } = useLanguage();
+
+  const call = useRunSelect(loop, ({ stage, countdown, run }) => {
+    if (stage === "countdown") {
+      return String(countdown);
+    }
+
+    if (stage !== "running") {
+      return null;
+    }
+
+    if (run.tick < GO_TICKS) {
+      return market.go;
+    }
+
+    const { phase, tick } = run;
+
+    if (phase !== 1 && tick - (phase - 1) * PHASE_TICKS < PHASE_CALL_TICKS) {
+      return phase === 2 ? market.motorbikes : market.dog;
+    }
+
+    return null;
+  });
 
   const stunned = useRunSelect(
     loop,
@@ -219,16 +247,24 @@ export const RunCalls = ({ loop }: { loop: RunLoop }) => {
       aria-live="assertive"
       className="pointer-events-none absolute inset-0"
     >
-      {call !== null && <Call>{call}</Call>}
+      {call !== null && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <RunCallSticker
+            label={call}
+            tone="mustard"
+            tilt={-4}
+            fontSize="min(24cqh, 12cqw)"
+          />
+        </div>
+      )}
       {stunned && (
         <div className="absolute inset-x-0 top-1/4 flex justify-center">
-          <WordSticker
+          <RunCallSticker
+            label={market.stunned}
             tone="tomato"
             tilt={3}
-            style={{ fontSize: "min(12cqh, 6cqw)" }}
-          >
-            Stunned!
-          </WordSticker>
+            fontSize="min(12cqh, 6cqw)"
+          />
         </div>
       )}
     </output>

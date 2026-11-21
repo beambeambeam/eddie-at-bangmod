@@ -2,6 +2,8 @@ import { Button, Callout } from "@plop-ui/react";
 import { useSyncExternalStore } from "react";
 
 import { enterLandscape } from "@/lib/landscape";
+import { useLanguage } from "@/lib/localization/language-provider";
+import { lettered } from "@/lib/localization/lettering";
 
 /**
  * A touch screen held upright and too narrow for the landscape frame: a
@@ -30,18 +32,23 @@ export const usePhonePortrait = () =>
  * Asks the player to turn a phone sideways. The Run waits meanwhile. Where
  * the browser can, the button goes fullscreen and turns the screen for them.
  */
-export const RotateNotice = () => (
-  <output className="flex max-w-sm flex-col items-center gap-4">
-    <Callout tone="info" title="Rotate your phone" buddy>
-      Market Run plays sideways. Turn your phone to landscape to keep going. The
-      Run waits for you.
-    </Callout>
-    <Button
-      onClick={() => {
-        void enterLandscape();
-      }}
-    >
-      Play fullscreen
-    </Button>
-  </output>
-);
+export const RotateNotice = () => {
+  const {
+    text: { rotate },
+  } = useLanguage();
+
+  return (
+    <output className="flex max-w-sm flex-col items-center gap-4">
+      <Callout tone="info" title={lettered(rotate.title)} buddy>
+        {rotate.text}
+      </Callout>
+      <Button
+        onClick={() => {
+          void enterLandscape();
+        }}
+      >
+        {lettered(rotate.fullscreen)}
+      </Button>
+    </output>
+  );
+};

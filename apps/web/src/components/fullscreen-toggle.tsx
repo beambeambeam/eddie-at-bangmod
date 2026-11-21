@@ -3,6 +3,7 @@ import { MaximizeIcon, MinimizeIcon } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
 import { enterLandscape } from "@/lib/landscape";
+import { useLanguage } from "@/lib/localization/language-provider";
 
 const subscribe = (onChange: () => void) => {
   document.addEventListener("fullscreenchange", onChange);
@@ -35,6 +36,10 @@ const useFullscreen = () => ({
 
 /** Enters or leaves fullscreen. Hidden where the browser lacks the API (e.g. iPhone Safari). */
 const FullscreenToggle = () => {
+  const {
+    text: { settings },
+  } = useLanguage();
+
   const { active: isFullscreen, supported: isSupported } = useFullscreen();
 
   if (!isSupported) {
@@ -45,7 +50,7 @@ const FullscreenToggle = () => {
     <IconButton
       size="sm"
       icon={isFullscreen ? <MinimizeIcon /> : <MaximizeIcon />}
-      label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      label={isFullscreen ? settings.exitFullscreen : settings.enterFullscreen}
       onClick={() => {
         void toggleFullscreen();
       }}

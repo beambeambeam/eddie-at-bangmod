@@ -5,6 +5,8 @@ import { useEffect } from "react";
 
 import { loadMarketScene } from "@/components/play/load-market-scene";
 import { RouterLink } from "@/components/router-link";
+import { useLanguage } from "@/lib/localization/language-provider";
+import { lettered } from "@/lib/localization/lettering";
 
 interface Decoration {
   kind: DoodleKind;
@@ -86,6 +88,7 @@ const usePreloadMarket = () => {
 };
 
 const HomeComponent = () => {
+  const { text } = useLanguage();
   usePreloadMarket();
 
   return (
@@ -101,7 +104,7 @@ const HomeComponent = () => {
 
       <div className="relative flex flex-col items-center gap-8 text-center">
         <Tag tone="mint" pattern="dots" tilt={-3}>
-          A mini game
+          {lettered(text.home.miniGame)}
         </Tag>
 
         <div className="flex flex-col items-center gap-2">
@@ -113,9 +116,7 @@ const HomeComponent = () => {
           </WordSticker>
         </div>
 
-        <p className="max-w-sm text-lg">
-          A mini game about Eddie in the Market@Bangmod
-        </p>
+        <p className="max-w-sm text-lg">{text.home.description}</p>
 
         <div className="flex flex-col items-center gap-6 pt-12">
           <ButtonLink
@@ -129,7 +130,7 @@ const HomeComponent = () => {
             buddyMood="congrats"
             burst="confetti"
           >
-            Play
+            {lettered(text.play)}
           </ButtonLink>
           <ButtonLink
             as={RouterLink}
@@ -137,7 +138,7 @@ const HomeComponent = () => {
             variant="mint"
             size="sm"
           >
-            Leaderboard
+            {lettered(text.leaderboard)}
           </ButtonLink>
         </div>
       </div>

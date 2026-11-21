@@ -175,19 +175,23 @@ describe("the Device's entry", () => {
 
 describe("Nickname", () => {
   test.each([
-    ["too short", "E"],
-    ["too long", "EddieEddieEddie17"],
-    ["made of other characters", "Eddie!"],
-    ["only spaces", "    "],
-    ["on the blocklist", "Fuck Eddie"],
-  ])("a Nickname %s is rejected", async (_, nickname) => {
-    const device = newDevice();
+    ["too short", "E", "too-short"],
+    ["too long", "EddieEddieEddie17", "too-long"],
+    ["made of other characters", "Eddie!", "invalid-characters"],
+    ["only spaces", "    ", "too-short"],
+    ["on the blocklist", "Fuck Eddie", "blocked"],
+  ])(
+    "a Nickname %s is rejected with a stable reason",
+    async (_, nickname, reason) => {
+      const device = newDevice();
 
-    await expect(postRun(device, nickname, 100)).rejects.toMatchObject({
-      code: "INVALID_NICKNAME",
-    });
-    expect(await api.leaderboard.me({ deviceId: device })).toBeNull();
-  });
+      await expect(postRun(device, nickname, 100)).rejects.toMatchObject({
+        code: "INVALID_NICKNAME",
+        data: { reason },
+      });
+      expect(await api.leaderboard.me({ deviceId: device })).toBeNull();
+    }
+  );
 
   test("Thai letters, digits and spaces are accepted, trimmed", async () => {
     const device = newDevice();

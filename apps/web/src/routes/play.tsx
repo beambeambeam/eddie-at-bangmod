@@ -18,6 +18,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import { LanguageSwitch } from "@/components/language-switch";
 import { FloatingJoystick } from "@/components/play/floating-joystick";
 import { HazardWarnings } from "@/components/play/hazard-warnings";
 import { HowTo } from "@/components/play/how-to";
@@ -39,9 +40,12 @@ import { SettingsMenu } from "@/components/settings-menu";
 import { getDevice, markHowToSeen, subscribeDevice } from "@/lib/device";
 import { useRunFeedback } from "@/lib/feedback/use-run-feedback";
 import { enterLandscape } from "@/lib/landscape";
+import { useLanguage } from "@/lib/localization/language-provider";
+import { lettered } from "@/lib/localization/lettering";
 import { createMoveInput } from "@/lib/move-input";
 import { createRunLoop } from "@/lib/run-loop";
 import { lockRunTouch } from "@/lib/touch-lock";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useRunSelect } from "@/lib/use-run-select";
 import { orpc } from "@/utils/orpc";
 
@@ -52,46 +56,41 @@ const MarketScene = lazy(async () => {
   return { default: module.MarketScene };
 });
 
-/** Lines the loading card rotates through while the Market gets ready. */
-const LOADING_TIPS = [
-  "Stacking the produce…",
-  "Parking the motorbikes…",
-  "Waking the soi dog…",
-  "Hanging the lights…",
-];
-
-// Nothing ever changes: this store only tells the server render from the client.
-const subscribeNever = () => () => {
-  // Nothing to stop: no listener was added.
-};
-
 const newSeed = () => Math.floor(Math.random() * 2 ** 32);
 
-const UnsupportedBrowser = () => (
-  <main className="grid min-h-svh place-items-center p-6">
-    <h1 className="sr-only">Market Run</h1>
-    <Callout
-      action={
-        <ButtonLink as={RouterLink} href="/" size="sm">
-          Back to home
-        </ButtonLink>
-      }
-      className="w-full max-w-md"
-      headingLevel={2}
-      role="alert"
-      title="WebGL 2 is unavailable"
-      tone="warn"
-    >
-      Market Run needs WebGL 2. Try enabling hardware acceleration in your
-      browser settings, or open the game in another browser.
-    </Callout>
-  </main>
-);
+const UnsupportedBrowser = () => {
+  const { text } = useLanguage();
+
+  return (
+    <main className="grid min-h-svh place-items-center p-6">
+      <h1 className="sr-only">{text.marketRun}</h1>
+      <div className="flex w-full max-w-md flex-col items-center gap-4">
+        <LanguageSwitch />
+        <Callout
+          action={
+            <ButtonLink as={RouterLink} href="/" size="sm">
+              {lettered(text.compatibility.home)}
+            </ButtonLink>
+          }
+          className="w-full"
+          headingLevel={2}
+          role="alert"
+          title={lettered(text.compatibility.title)}
+          tone="warn"
+        >
+          {text.compatibility.description}
+        </Callout>
+      </div>
+    </main>
+  );
+};
 
 const PlayPage = () => {
+  const { text } = useLanguage();
+  const initialSeed = Route.useLoaderData();
   const input = useMemo(() => createMoveInput(), []);
   // Each "Play again" starts a fresh Run with a new seed.
-  const [seed, setSeed] = useState(newSeed);
+  const [seed, setSeed] = useState(initialSeed);
   const loop = useMemo(() => createRunLoop(seed, input.read), [input, seed]);
 
   // The page re-renders only when the stage changes; each piece of the HUD
@@ -128,13 +127,8 @@ const PlayPage = () => {
   const listRef = useRef<HTMLDivElement>(null);
   useRunFeedback(loop, listRef);
 
-  // Wait until hydration to show the seeded Shopping List and the Device's
-  // first-run how-to. Both depend on client state.
-  const hydrated = useSyncExternalStore(
-    subscribeNever,
-    () => true,
-    () => false
-  );
+  // The first-run how-to depends on the Device's settings.
+  const hydrated = useHydrated();
 
   const seenHowTo = useSyncExternalStore(
     subscribeDevice,
@@ -204,7 +198,7 @@ const PlayPage = () => {
         }
       }}
     >
-      <h1 className="sr-only">Market Run</h1>
+      <h1 className="sr-only">{text.marketRun}</h1>
       {phonePortrait && (
         <div className="absolute inset-0 flex items-center justify-center p-4">
           <RotateNotice />
@@ -222,10 +216,10 @@ const PlayPage = () => {
             window or a tablet held upright): Scoreboard, Market, List. */}
         <div className="pointer-events-none relative grid size-full grid-rows-[auto_minmax(0,1fr)_auto] gap-2 [--rail:clamp(8rem,16cqw,20rem)] landscape:grid-cols-[minmax(var(--rail),1fr)_min(calc(100cqw-2*var(--rail)-1rem),calc(100cqh*16/9))_minmax(var(--rail),1fr)] landscape:grid-rows-1 landscape:gap-2">
           <aside
-            aria-label="Shopping List"
+            aria-label={text.shoppingList}
             className="order-3 mx-auto flex w-full max-w-xl items-center justify-center landscape:order-1 landscape:max-w-none"
           >
-            {hydrated && stage !== "finished" && (
+            {stage !== "finished" && (
               <ShoppingListCard loop={loop} listRef={listRef} />
             )}
           </aside>
@@ -257,8 +251,9 @@ const PlayPage = () => {
                 <div className="absolute inset-0 flex items-center justify-center p-2">
                   <Loader
                     variant="card"
-                    label="Setting up the Market"
-                    tips={LOADING_TIPS}
+                    label={text.market.loading}
+                    slowMessage={text.market.slowLoading}
+                    tips={text.market.tips}
                     slowAfter={8000}
                   />
                 </div>
@@ -266,19 +261,19 @@ const PlayPage = () => {
             </div>
           </div>
           <aside
-            aria-label="Run status"
+            aria-label={text.market.status}
             className="order-1 flex items-center gap-2 landscape:order-3 landscape:flex-col"
           >
             <div className="pointer-events-auto flex gap-2 landscape:self-end">
               <IconButton
                 size="sm"
                 icon={<InfoIcon />}
-                label="How to play"
+                label={text.howTo.title}
                 onClick={() => {
                   setReopened(true);
                 }}
               />
-              <SettingsMenu />
+              {stage !== "finished" && <SettingsMenu />}
             </div>
             <div className="flex w-full flex-1 items-center justify-center">
               <Scoreboard loop={loop} />
@@ -299,6 +294,7 @@ const PlayPage = () => {
 };
 
 export const Route = createFileRoute("/play")({
-  head: () => ({ meta: [{ title: "Market Run · Eddie@Bangmod" }] }),
+  // Share the first Shopping List between server rendering and hydration.
+  loader: newSeed,
   component: PlayPage,
 });

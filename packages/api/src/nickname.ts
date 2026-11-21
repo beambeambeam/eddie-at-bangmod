@@ -27,15 +27,38 @@ const isBlocked = (nickname: string) => {
   return BLOCKLIST.some((word) => folded.includes(word));
 };
 
-/**
- * The one Nickname rule, shared by the results Sheet and the server:
- * trimmed, 2–16 characters, Thai or Latin letters, digits and spaces, and
- * no blocked word. Each failure carries a message the player can act on.
- */
-export const nicknameSchema = z
-  .string()
-  .trim()
-  .min(2, "Use at least 2 characters.")
-  .max(16, "Use 16 characters or fewer.")
-  .regex(ALLOWED, "Use only Thai or Latin letters, digits and spaces.")
-  .refine((nickname) => !isBlocked(nickname), "Pick a different Nickname.");
+export const nicknameReasonSchema = z.enum([
+  "too-short",
+  "too-long",
+  "invalid-characters",
+  "blocked",
+]);
+
+export type NicknameReason = z.infer<typeof nicknameReasonSchema>;
+
+type NicknameResult =
+  | { success: true; nickname: string }
+  | { success: false; reason: NicknameReason };
+
+/** Both the results Sheet and the server validate the same trimmed Nickname. */
+export const validateNickname = (value: string): NicknameResult => {
+  const nickname = value.trim();
+
+  if (nickname.length < 2) {
+    return { success: false, reason: "too-short" };
+  }
+
+  if (nickname.length > 16) {
+    return { success: false, reason: "too-long" };
+  }
+
+  if (!ALLOWED.test(nickname)) {
+    return { success: false, reason: "invalid-characters" };
+  }
+
+  if (isBlocked(nickname)) {
+    return { success: false, reason: "blocked" };
+  }
+
+  return { success: true, nickname };
+};
