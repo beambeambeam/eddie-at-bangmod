@@ -6,6 +6,7 @@ import {
   PerformanceMonitor,
 } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import type { GLProps } from "@react-three/fiber";
 import {
   Bloom,
   EffectComposer,
@@ -15,9 +16,16 @@ import {
   Vignette,
 } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Component,
+  memo,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
-import { MathUtils, Mesh } from "three";
+import { MathUtils, Mesh, WebGLRenderer } from "three";
 import type { Group } from "three";
 
 import type { RunLoop } from "@/lib/run-loop";
@@ -369,6 +377,63 @@ const camera = createMarketCamera();
 
 const isTouch = () => window.matchMedia("(pointer: coarse)").matches;
 
+const WEBGL_UNAVAILABLE = new Error("WebGL 2 is unavailable.");
+
+const createRenderer: GLProps = ({ canvas }) => {
+  if (!(canvas instanceof HTMLCanvasElement)) {
+    throw new TypeError("The Market requires an HTML canvas.");
+  }
+
+  // Retry with the browser's default GPU choice and without multisampling.
+  const context =
+    canvas.getContext("webgl2", {
+      antialias: true,
+      powerPreference: "high-performance",
+    }) ?? canvas.getContext("webgl2", { antialias: false });
+
+  if (!context) {
+    throw WEBGL_UNAVAILABLE;
+  }
+
+  return new WebGLRenderer({
+    antialias: context.getContextAttributes()?.antialias,
+    canvas,
+    context,
+  });
+};
+
+interface MarketRendererBoundaryProps {
+  children: ReactNode;
+  onUnavailable: () => void;
+}
+
+// Canvas forwards renderer initialization errors to the nearest React boundary.
+class MarketRendererBoundary extends Component<
+  MarketRendererBoundaryProps,
+  { unavailable: boolean }
+> {
+  constructor(props: MarketRendererBoundaryProps) {
+    super(props);
+    this.state = { unavailable: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    if (error !== WEBGL_UNAVAILABLE) {
+      throw error;
+    }
+
+    return { unavailable: true };
+  }
+
+  componentDidCatch() {
+    this.props.onUnavailable();
+  }
+
+  render(): ReactNode {
+    return this.state.unavailable ? null : this.props.children;
+  }
+}
+
 /**
  * The Market as a lit 3D diorama under the fixed camera. It draws the
  * snapshot only: no rules, and no text (every label is Plop UI over the
@@ -409,7 +474,7 @@ const MarketSceneView = ({
       camera={camera}
       dpr={[1, dprCap]}
       shadows="percentage"
-      gl={{ antialias: true, powerPreference: "high-performance" }}
+      gl={createRenderer}
     >
       <PerformanceMonitor onChange={handleChange} onDecline={handleDecline} />
       <Lighting rich={rich} />
@@ -440,4 +505,18 @@ const MarketSceneView = ({
   );
 };
 
-export const MarketScene = memo(MarketSceneView);
+const MarketSceneWithBoundary = ({
+  loop,
+  onReady,
+  onUnavailable,
+}: {
+  loop: RunLoop;
+  onReady: () => void;
+  onUnavailable: () => void;
+}) => (
+  <MarketRendererBoundary onUnavailable={onUnavailable}>
+    <MarketSceneView loop={loop} onReady={onReady} />
+  </MarketRendererBoundary>
+);
+
+export const MarketScene = memo(MarketSceneWithBoundary);
