@@ -49,3 +49,9 @@ A short arcade minigame. Eddie, a KMUTT Bangmod student, rushes through a street
 **Run Ticket**: The server-issued permission to post one Score for one Run. _Avoid_: Session, run token, nonce
 
 **Device**: An anonymous browser identity that owns at most one Leaderboard entry, its best Score. _Avoid_: User, account, player id
+
+## Studio
+
+**Studio**: The local tool for making cinematic artwork from Eddie@Bangmod’s 3D models.
+
+**Shot**: A staged 3D view of Eddie or the Market, with a fixed pose, camera, and lighting. _Avoid_: Screenshot, when referring to the staged view itself

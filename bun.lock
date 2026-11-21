@@ -131,6 +131,28 @@
         "varlock": "catalog:",
       },
     },
+    "packages/studio": {
+      "name": "@eddie-at-bangmod/studio",
+      "dependencies": {
+        "@eddie-at-bangmod/game": "workspace:*",
+        "@react-three/fiber": "^9.8.2",
+        "@react-three/postprocessing": "^3.2.2",
+        "postprocessing": "^6.39.6",
+        "react": "catalog:",
+        "react-dom": "catalog:",
+        "three": "^0.187.0",
+        "web": "workspace:*",
+      },
+      "devDependencies": {
+        "@eddie-at-bangmod/config": "workspace:*",
+        "@types/react": "catalog:",
+        "@types/react-dom": "catalog:",
+        "@types/three": "^0.187.0",
+        "playwright": "1.65.1",
+        "typescript": "catalog:",
+        "vite": "catalog:",
+      },
+    },
   },
   "overrides": {
     "vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
@@ -278,6 +300,8 @@
     "@eddie-at-bangmod/game": ["@eddie-at-bangmod/game@workspace:packages/game"],
 
     "@eddie-at-bangmod/infra": ["@eddie-at-bangmod/infra@workspace:packages/infra"],
+
+    "@eddie-at-bangmod/studio": ["@eddie-at-bangmod/studio@workspace:packages/studio"],
 
     "@effect/platform-bun": ["@effect/platform-bun@4.1.4", "", { "dependencies": { "@effect/platform-node-shared": "4.1.4" }, "peerDependencies": { "effect": "^4.1.4" } }, "sha512-Vdq82GOrD5HVF43aXVwHeX+4uIOrgAnjju9MEyizzFZ3yt3A6x9prtmHej1q/zAOaeNddtkpPr2ExHEvZ13S6Q=="],
 
