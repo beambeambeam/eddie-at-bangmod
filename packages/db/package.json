@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@eddie-at-bangmod/config": "workspace:*",
-    "drizzle-kit": "1.0.0-rc.5",
+    "drizzle-kit": "1.0.0-rc.6",
     "typescript": "catalog:",
     "varlock": "catalog:"
   }
